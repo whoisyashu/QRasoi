@@ -131,8 +131,10 @@ export const ChefDashboardPage: React.FC = () => {
                   {/* Individual Items List */}
                   <div className="space-y-2">
                     {order.items.map((item, idx) => {
-                      const isItemReady = item.status === 'ready';
-                      const itemId = item.id || item.menuItem.id;
+                      const isItemReady =
+                        item.status === 'ready' ||
+                        Boolean(item.notes && item.notes.includes('[STATUS:READY]'));
+                      const itemId = item.id || item.menuItem?.id || (item as any).menu_item_id;
 
                       return (
                         <div

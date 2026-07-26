@@ -255,9 +255,16 @@ export const useOrderStore = create<OrderState>((set, get) => ({
             i.menuItem?.id === itemId ||
             (i as any).menu_item_id === itemId ||
             (i as any).menuItemId === itemId;
-          return isMatch ? { ...i, status } : i;
+          if (!isMatch) return i;
+          const currentNotes = i.notes || '';
+          const newNotes = status === 'ready' && !currentNotes.includes('[STATUS:READY]')
+            ? (currentNotes ? `${currentNotes} [STATUS:READY]` : '[STATUS:READY]')
+            : currentNotes;
+          return { ...i, status, notes: newNotes };
         });
-        const allReady = updatedItems.length > 0 && updatedItems.every((i) => i.status === 'ready');
+        const allReady = updatedItems.length > 0 && updatedItems.every(
+          (i) => i.status === 'ready' || (i.notes && i.notes.includes('[STATUS:READY]'))
+        );
         return {
           ...o,
           items: updatedItems,
@@ -343,19 +350,27 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       if (payload && (payload.orderId || payload.itemId)) {
         set((state) => ({
           orders: state.orders.map((o) => {
-            if (payload.orderId && o.id !== payload.orderId) return o;
+            if (payload.orderId && o.id !== payload.orderId && o.id !== `QR-${payload.orderId}`) return o;
             const updatedItems = o.items.map((i) => {
               const isMatch =
                 i.id === payload.itemId ||
                 i.menuItem?.id === payload.itemId ||
                 (i as any).menu_item_id === payload.itemId ||
                 (i as any).menuItemId === payload.itemId;
-              return isMatch ? { ...i, status: payload.status } : i;
+              if (!isMatch) return i;
+              const currentNotes = i.notes || '';
+              const newNotes = payload.status === 'ready' && !currentNotes.includes('[STATUS:READY]')
+                ? (currentNotes ? `${currentNotes} [STATUS:READY]` : '[STATUS:READY]')
+                : currentNotes;
+              return { ...i, status: payload.status, notes: newNotes };
             });
+            const allReady = updatedItems.length > 0 && updatedItems.every(
+              (i) => i.status === 'ready' || (i.notes && i.notes.includes('[STATUS:READY]'))
+            );
             return {
               ...o,
               items: updatedItems,
-              status: payload.isOrderReady ? 'ready' : o.status,
+              status: (payload.isOrderReady || allReady) ? 'ready' : o.status,
             };
           }),
         }));
