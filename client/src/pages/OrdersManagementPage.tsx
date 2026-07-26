@@ -7,19 +7,28 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Search, Filter, CheckCircle2, XCircle } from 'lucide-react';
 
+import { useAuthStore } from '../store/useAuthStore';
+import { socketClient } from '../services/socket';
+
 export const OrdersManagementPage: React.FC = () => {
-  const { orders, fetchLiveOrders, verifyPayment, updateOrderStatus, cancelOrder } = useOrderStore();
+  const { orders, fetchLiveOrders, initRealtimeSubscription, verifyPayment, updateOrderStatus, cancelOrder } = useOrderStore();
+  const { restaurant } = useAuthStore();
 
   const [selectedTab, setSelectedTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchLiveOrders();
+    initRealtimeSubscription();
+    const restId = restaurant?.id || 'rest-dineverse-bistro-q4zpbu';
+    socketClient.joinRestaurant(restId);
+    console.log('⚡ [Owner Dashboard] Joined real-time restaurant room:', restId);
+
     const interval = setInterval(() => {
       fetchLiveOrders();
     }, 3000);
     return () => clearInterval(interval);
-  }, [fetchLiveOrders]);
+  }, [fetchLiveOrders, initRealtimeSubscription, restaurant?.id]);
 
   const filterTabs = [
     { id: 'all', label: 'All Orders', count: orders.length },

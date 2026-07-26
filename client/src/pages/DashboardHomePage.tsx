@@ -18,10 +18,21 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 
+import { useEffect } from 'react';
+import { socketClient } from '../services/socket';
+
 export const DashboardHomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { orders, verifyPayment, updateOrderStatus } = useOrderStore();
+  const { orders, fetchLiveOrders, initRealtimeSubscription, verifyPayment, updateOrderStatus } = useOrderStore();
   const { restaurant } = useAuthStore();
+
+  useEffect(() => {
+    fetchLiveOrders();
+    initRealtimeSubscription();
+    const restId = restaurant?.id || 'rest-dineverse-bistro-q4zpbu';
+    socketClient.joinRestaurant(restId);
+    console.log('⚡ [Owner Overview] Joined real-time restaurant room:', restId);
+  }, [fetchLiveOrders, initRealtimeSubscription, restaurant?.id]);
 
   const totalRevenue = orders
     .filter((o) => o.status !== 'cancelled' && o.status !== 'expired')

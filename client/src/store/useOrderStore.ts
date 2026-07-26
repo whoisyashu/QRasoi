@@ -244,11 +244,20 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   updateOrderItemStatus: async (orderId, itemId, status) => {
+    console.log(`👨‍🍳 [Chef KDS] Updating item status for order ${orderId}, item ${itemId} -> ${status}`);
+
     set((state) => ({
       orders: state.orders.map((o) => {
         if (o.id !== orderId) return o;
-        const updatedItems = o.items.map((i) => (i.id === itemId ? { ...i, status } : i));
-        const allReady = updatedItems.every((i) => i.status === 'ready');
+        const updatedItems = o.items.map((i) => {
+          const isMatch =
+            i.id === itemId ||
+            i.menuItem?.id === itemId ||
+            (i as any).menu_item_id === itemId ||
+            (i as any).menuItemId === itemId;
+          return isMatch ? { ...i, status } : i;
+        });
+        const allReady = updatedItems.length > 0 && updatedItems.every((i) => i.status === 'ready');
         return {
           ...o,
           items: updatedItems,
@@ -258,9 +267,10 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     }));
 
     try {
-      await apiClient.patch(`/chef/orders/${orderId}/items/${itemId}/status`, { status });
+      const response = await apiClient.patch(`/chef/orders/${orderId}/items/${itemId}/status`, { status });
+      console.log('✅ [Chef API] Item status updated successfully on backend:', response.data);
     } catch (err) {
-      console.warn('API item status update error:', err);
+      console.warn('⚠️ [Chef API] Item status update error:', err);
     }
   },
 
@@ -283,9 +293,8 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   checkExpiredOrders: () => {
     const now = Date.now();
-    const { orders } = get();
-    orders.forEach((o) => {
-      if (o.status === 'pending' && !o.isPaymentVerified) {
+    get().orders.forEach((o) => {
+      if (o.status === 'pending') {
         const createdTime = new Date(o.createdAt).getTime();
         const timeoutMs = (o.estimatedTimeMinutes || 15) * 60 * 1000;
         if (now - createdTime > timeoutMs) {
@@ -298,16 +307,19 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   initRealtimeSubscription: () => {
     const socket = socketClient.connect();
 
-    // Listen for real-time order creation (Owner & Kitchen)
+    // Listen for real-time order creation (Owner Dashboard & Kitchen)
     socket.on('order:created', (newOrder: any) => {
+      console.log('🔔 [Realtime Socket] order:created event received:', newOrder);
       if (newOrder && newOrder.id) {
         set((state) => {
           const exists = state.orders.some((o) => o.id === newOrder.id);
           if (exists) return state;
+
           triggerNotification(
             '🔔 New Order Received!',
             `Order ${newOrder.id} placed at ${newOrder.tableNumber} by ${newOrder.customerName}`
           );
+
           return { orders: [newOrder, ...state.orders] };
         });
       }
@@ -315,6 +327,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
     // Listen for payment verification (Kitchen KDS & Customer Order Page)
     socket.on('order:payment_verified', (payload: any) => {
+      console.log('💳 [Realtime Socket] order:payment_verified event received:', payload);
       if (payload && payload.id) {
         set((state) => ({
           orders: state.orders.map((o) =>
@@ -326,13 +339,19 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
     // Listen for item status changes (Kitchen KDS & Customer Order Page)
     socket.on('order_item:status_updated', (payload: any) => {
-      if (payload && payload.orderId && payload.itemId) {
+      console.log('🍳 [Realtime Socket] order_item:status_updated event received:', payload);
+      if (payload && (payload.orderId || payload.itemId)) {
         set((state) => ({
           orders: state.orders.map((o) => {
-            if (o.id !== payload.orderId) return o;
-            const updatedItems = o.items.map((i) =>
-              i.id === payload.itemId ? { ...i, status: payload.status } : i
-            );
+            if (payload.orderId && o.id !== payload.orderId) return o;
+            const updatedItems = o.items.map((i) => {
+              const isMatch =
+                i.id === payload.itemId ||
+                i.menuItem?.id === payload.itemId ||
+                (i as any).menu_item_id === payload.itemId ||
+                (i as any).menuItemId === payload.itemId;
+              return isMatch ? { ...i, status: payload.status } : i;
+            });
             return {
               ...o,
               items: updatedItems,
@@ -345,6 +364,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
     // Listen for overall order status changes
     socket.on('order:status_updated', (payload: any) => {
+      console.log('📢 [Realtime Socket] order:status_updated event received:', payload);
       if (payload && payload.orderId) {
         set((state) => ({
           orders: state.orders.map((o) =>
