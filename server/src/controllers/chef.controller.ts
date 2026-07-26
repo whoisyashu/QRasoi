@@ -136,38 +136,7 @@ export const updateOrderItemStatus = async (req: AuthenticatedRequest, res: Resp
 
       // 2. Check if ALL items for this order are 'ready'
       let isAllReady = false;
-
-      // Synchronize in-memory fallback store as well
-      const memKey = targetOrderId || orderId;
-      const rawMemKey = memKey.replace(/^QR-/, '');
-      const memOrder = inMemoryPublicOrders.get(memKey) || inMemoryPublicOrders.get(`QR-${rawMemKey}`) || inMemoryPublicOrders.get(rawMemKey);
-      if (memOrder && memOrder.items) {
-        let memAllReady = true;
-        memOrder.items.forEach((it: any) => {
-          const isItMatch =
-            it.id === itemId ||
-            it.menuItem?.id === itemId ||
-            (it as any).menu_item_id === itemId ||
-            itemId === `oi-${it.menuItem?.id || ''}`;
-          if (isItMatch) {
-            it.status = status;
-            if (status === 'ready' && (!it.notes || !it.notes.includes('[STATUS:READY]'))) {
-              it.notes = it.notes ? `${it.notes} [STATUS:READY]` : '[STATUS:READY]';
-            }
-          }
-          const isItReady = it.status === 'ready' || (it.notes && it.notes.includes('[STATUS:READY]'));
-          if (!isItReady) {
-            memAllReady = false;
-          }
-        });
-        if (memAllReady) {
-          memOrder.status = 'ready';
-          isAllReady = true;
-          socketService.emitOrderStatusUpdated(restaurantId, memOrder.id, 'ready');
-        }
-      }
-
-      if (targetOrderId && db) {
+      if (targetOrderId) {
         const { data: allItems } = await db
           .from('order_items')
           .select('notes, status')

@@ -52,37 +52,53 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       }
 
       if (Array.isArray(response.data) && response.data.length > 0) {
-        const mappedOrders: Order[] = response.data.map((row: any) => ({
-          id: row.id,
-          customerName: row.customer_name || row.customerName || 'Customer',
-          customerPhone: row.customer_phone || row.customerPhone || '',
-          tableNumber: row.table_number || row.tableNumber || 'Table 1',
-          subtotal: Number(row.subtotal || 0),
-          tax: Number(row.tax || 0),
-          total: Number(row.total || row.subtotal || 0),
-          status: (row.status as OrderStatus) || 'pending',
-          isPaymentVerified: Boolean(row.is_payment_verified || row.isPaymentVerified),
-          createdAt: row.created_at || row.createdAt || new Date().toISOString(),
-          estimatedTimeMinutes: Number(row.estimated_time_minutes || 15),
-          restaurantId: row.restaurant_id || MOCK_RESTAURANT.id,
-          restaurantName: MOCK_RESTAURANT.name,
-          items: (row.order_items || row.items || []).map((oi: any) => ({
-            id: oi.id || `oi-${oi.menu_item_id || oi.menuItem?.id || 'item'}`,
-            menuItem: {
-              id: oi.menu_item_id || oi.menuItem?.id || 'item-1',
-              name: oi.item_name || oi.menuItem?.name || 'Dish',
-              description: '',
-              price: Number(oi.item_price || oi.price || oi.menuItem?.price || 0),
-              category: 'Main Course',
-              dietary: 'veg',
-              isAvailable: true,
-              preparationTimeMinutes: 15,
-            },
-            quantity: oi.quantity || 1,
-            notes: oi.cooking_notes || oi.notes || '',
-            status: oi.status || 'preparing',
-          })),
-        }));
+        const currentOrdersMap = new Map(get().orders.map((o) => [o.id, o]));
+
+        const mappedOrders: Order[] = response.data.map((row: any) => {
+          const existingOrder = currentOrdersMap.get(row.id);
+          const existingItemsMap = new Map(
+            (existingOrder?.items || []).map((i) => [i.id || i.menuItem?.id, i])
+          );
+
+          return {
+            id: row.id,
+            customerName: row.customer_name || row.customerName || 'Customer',
+            customerPhone: row.customer_phone || row.customerPhone || '',
+            tableNumber: row.table_number || row.tableNumber || 'Table 1',
+            subtotal: Number(row.subtotal || 0),
+            tax: Number(row.tax || 0),
+            total: Number(row.total || row.subtotal || 0),
+            status: (row.status as OrderStatus) || 'pending',
+            isPaymentVerified: Boolean(row.is_payment_verified || row.isPaymentVerified),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            estimatedTimeMinutes: Number(row.estimated_time_minutes || 15),
+            restaurantId: row.restaurant_id || MOCK_RESTAURANT.id,
+            restaurantName: MOCK_RESTAURANT.name,
+            items: (row.order_items || row.items || []).map((oi: any) => {
+              const oiId = oi.id || `oi-${oi.menu_item_id || oi.menuItem?.id || 'item'}`;
+              const existingItem = existingItemsMap.get(oiId) || existingItemsMap.get(oi.menu_item_id || oi.menuItem?.id);
+              const isServerReady = oi.status === 'ready' || Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
+              const isLocalReady = existingItem?.status === 'ready';
+
+              return {
+                id: oiId,
+                menuItem: {
+                  id: oi.menu_item_id || oi.menuItem?.id || 'item-1',
+                  name: oi.item_name || oi.menuItem?.name || 'Dish',
+                  description: '',
+                  price: Number(oi.item_price || oi.price || oi.menuItem?.price || 0),
+                  category: 'Main Course',
+                  dietary: 'veg',
+                  isAvailable: true,
+                  preparationTimeMinutes: 15,
+                },
+                quantity: oi.quantity || 1,
+                notes: oi.cooking_notes || oi.notes || '',
+                status: (isServerReady || isLocalReady) ? 'ready' : (oi.status || 'preparing'),
+              };
+            }),
+          };
+        });
 
         // Detect newly arrived orders for sound notification
         if (previousOrderIds !== null) {
