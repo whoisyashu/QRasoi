@@ -152,25 +152,35 @@ export const updateOrderItemStatus = async (req: AuthenticatedRequest, res: Resp
   }
 };
 
+import { inMemoryPublicOrders } from './public.controller.js';
+
 /**
  * PATCH /api/chef/orders/:orderId/status
  * Update overall order status (e.g. ready or completed)
  */
 export const updateChefOrderStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { orderId } = req.params;
+    const rawId = req.params.orderId as string;
+    const targetOrderId = (rawId || '').trim();
     const { status } = req.body;
+
+    // Sync status update to in-memory store for instant public tracking
+    const memObj = inMemoryPublicOrders.get(targetOrderId);
+    if (memObj) {
+      memObj.status = status;
+      inMemoryPublicOrders.set(targetOrderId, memObj);
+    }
 
     if (db) {
       const { data: updated } = await db
         .from('orders')
         .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', orderId)
+        .eq('id', targetOrderId)
         .select()
         .single();
 
       if (status === 'ready' || status === 'completed') {
-        const { data: allItems } = await db.from('order_items').select('*').eq('order_id', orderId);
+        const { data: allItems } = await db.from('order_items').select('*').eq('order_id', targetOrderId);
         if (allItems) {
           for (const item of allItems) {
             const currentNotes = item.notes || '';
@@ -186,7 +196,7 @@ export const updateChefOrderStatus = async (req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    res.json({ id: orderId, status });
+    res.json({ id: targetOrderId, status });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update order status' });
   }

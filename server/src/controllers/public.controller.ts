@@ -265,25 +265,50 @@ export const getOrderStatus = async (req: Request, res: Response): Promise<void>
     const formattedId = rawOrderId.startsWith('QR-') ? rawOrderId : `QR-${rawOrderId}`;
 
     if (db) {
-      // 1. Query DB using formatted ID (e.g. QR-1082)
-      let { data: order, error } = await db
+      // 1. Fetch order from 'orders' table without requiring PostgREST schema FK cache
+      let { data: order } = await db
         .from('orders')
-        .select('*, order_items(*)')
-        .eq('id', formattedId)
+        .select('*')
+        .or(`id.eq.${formattedId},id.eq.${rawOrderId},id.ilike.${formattedId},id.ilike.${rawOrderId}`)
         .maybeSingle();
 
-      // 2. Query DB using raw ID if not found
+      // Fallback: Check without OR string formatting
       if (!order) {
-        const { data: rawOrder } = await db
-          .from('orders')
-          .select('*, order_items(*)')
-          .eq('id', rawOrderId)
-          .maybeSingle();
-        order = rawOrder;
+        const { data: byEq } = await db.from('orders').select('*').eq('id', formattedId).maybeSingle();
+        order = byEq;
+      }
+      if (!order) {
+        const { data: byRaw } = await db.from('orders').select('*').eq('id', rawOrderId).maybeSingle();
+        order = byRaw;
       }
 
-      if (!error && order) {
-        res.json({
+      if (order) {
+        // 2. Fetch order items separately to avoid PostgREST relationship join errors
+        const { data: rawItems } = await db.from('order_items').select('*').eq('order_id', order.id);
+
+        const itemsList = (rawItems || []).map((oi: any) => {
+          const isReady = Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
+          const cleanNotes = oi.notes ? oi.notes.replace('[STATUS:READY]', '').trim() : '';
+
+          return {
+            id: oi.id || `oi-${oi.menu_item_id}`,
+            menuItem: {
+              id: oi.menu_item_id || 'item-1',
+              name: oi.item_name || 'Dish',
+              description: '',
+              price: Number(oi.price || 0),
+              category: 'Main Course',
+              dietary: 'veg',
+              isAvailable: true,
+              preparationTimeMinutes: 15,
+            },
+            quantity: Number(oi.quantity || 1),
+            notes: cleanNotes,
+            status: isReady ? 'ready' : 'preparing',
+          };
+        });
+
+        const resultObj = {
           id: order.id,
           customerName: order.customer_name || 'Customer',
           customerPhone: order.customer_phone || '',
@@ -295,28 +320,14 @@ export const getOrderStatus = async (req: Request, res: Response): Promise<void>
           isPaymentVerified: Boolean(order.is_payment_verified),
           createdAt: order.created_at || new Date().toISOString(),
           estimatedTimeMinutes: Number(order.estimated_time_minutes || 15),
-          items: (order.order_items || []).map((oi: any) => {
-            const isReady = Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
-            const cleanNotes = oi.notes ? oi.notes.replace('[STATUS:READY]', '').trim() : '';
+          items: itemsList,
+        };
 
-            return {
-              id: oi.id || `oi-${oi.menu_item_id}`,
-              menuItem: {
-                id: oi.menu_item_id || 'item-1',
-                name: oi.item_name || 'Dish',
-                description: '',
-                price: Number(oi.price || 0),
-                category: 'Main Course',
-                dietary: 'veg',
-                isAvailable: true,
-                preparationTimeMinutes: 15,
-              },
-              quantity: Number(oi.quantity || 1),
-              notes: cleanNotes,
-              status: isReady ? 'ready' : 'preparing',
-            };
-          }),
-        });
+        // Cache in memory for quick retrieval
+        inMemoryPublicOrders.set(order.id, resultObj);
+        inMemoryPublicOrders.set(formattedId, resultObj);
+
+        res.json(resultObj);
         return;
       }
     }
