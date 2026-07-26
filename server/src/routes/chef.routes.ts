@@ -8,6 +8,7 @@ router.use(authenticateToken, requireRoles(['chef', 'owner', 'admin']));
 
 router.get('/queue', getChefQueue);
 router.patch('/order-items/:itemId/status', updateOrderItemStatus);
+router.patch('/orders/:orderId/items/:itemId/status', updateOrderItemStatus);
 router.patch('/orders/:orderId/status', updateChefOrderStatus);
 
 export default router;

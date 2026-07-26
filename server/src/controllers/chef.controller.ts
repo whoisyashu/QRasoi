@@ -84,9 +84,10 @@ export const getChefQueue = async (req: AuthenticatedRequest, res: Response): Pr
  */
 export const updateOrderItemStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { itemId } = req.params;
-    const { status, orderId } = req.body; // status: 'ready' | 'preparing'
-    const restaurantId = req.user?.restaurantId || 'rest-outlet';
+    const itemId = String(req.params.itemId);
+    const { status } = req.body; // status: 'ready' | 'preparing'
+    const orderId = String(req.params.orderId || req.body.orderId || '');
+    const restaurantId = String(req.user?.restaurantId || 'rest-outlet');
 
     if (db) {
       let targetOrderId = orderId;
