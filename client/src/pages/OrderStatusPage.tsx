@@ -24,12 +24,14 @@ export const OrderStatusPage: React.FC = () => {
 
   const targetId = orderId ? (orderId.startsWith('QR-') ? orderId : `QR-${orderId}`) : '';
 
-  // Case-insensitive & flexible order resolution (QR-CMZOGQ, CMZOGQ, cmzogq)
+  const normalizeId = (str: string) => (str || '').toUpperCase().replace(/O/gi, '0');
+
+  // Case-insensitive & Zero/Letter-O flexible order resolution (QR-CMZ0GQ, CMZOGQ, cmzogq)
   const order = orders.find(
     (o) =>
-      o.id.toUpperCase() === targetId.toUpperCase() ||
-      (orderId && o.id.toUpperCase() === orderId.toUpperCase()) ||
-      (orderId && o.id.toUpperCase().endsWith(orderId.toUpperCase()))
+      normalizeId(o.id) === normalizeId(targetId) ||
+      (orderId && normalizeId(o.id) === normalizeId(orderId)) ||
+      (orderId && normalizeId(o.id).endsWith(normalizeId(orderId)))
   );
 
   // Sync order status from live backend API / Supabase every 3 seconds

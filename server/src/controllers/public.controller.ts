@@ -264,22 +264,35 @@ export const getOrderStatus = async (req: Request, res: Response): Promise<void>
     const rawOrderId = (req.params.orderId as string).trim();
     const formattedId = rawOrderId.startsWith('QR-') ? rawOrderId : `QR-${rawOrderId}`;
 
-    if (db) {
-      // 1. Fetch order from 'orders' table without requiring PostgREST schema FK cache
-      let { data: order } = await db
-        .from('orders')
-        .select('*')
-        .or(`id.eq.${formattedId},id.eq.${rawOrderId},id.ilike.${formattedId},id.ilike.${rawOrderId}`)
-        .maybeSingle();
+    // Variations to handle Zero (0) vs Letter (O) & 1 vs I confusion
+    const idsToTry = Array.from(
+      new Set([
+        formattedId,
+        rawOrderId,
+        formattedId.toUpperCase(),
+        rawOrderId.toUpperCase(),
+        formattedId.replace(/O/gi, '0'),
+        formattedId.replace(/0/g, 'O'),
+        rawOrderId.replace(/O/gi, '0'),
+        rawOrderId.replace(/0/g, 'O'),
+        `QR-${rawOrderId.replace(/O/gi, '0')}`,
+        `QR-${rawOrderId.replace(/0/g, 'O')}`,
+      ])
+    );
 
-      // Fallback: Check without OR string formatting
+    if (db) {
+      // 1. Fetch order from 'orders' table matching any ID variant
+      let { data: order } = await db.from('orders').select('*').in('id', idsToTry).maybeSingle();
+
+      // Fallback: Individual checks if .in() fails
       if (!order) {
-        const { data: byEq } = await db.from('orders').select('*').eq('id', formattedId).maybeSingle();
-        order = byEq;
-      }
-      if (!order) {
-        const { data: byRaw } = await db.from('orders').select('*').eq('id', rawOrderId).maybeSingle();
-        order = byRaw;
+        for (const candidate of idsToTry) {
+          const { data } = await db.from('orders').select('*').eq('id', candidate).maybeSingle();
+          if (data) {
+            order = data;
+            break;
+          }
+        }
       }
 
       if (order) {
