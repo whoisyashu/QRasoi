@@ -230,18 +230,27 @@ export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Pro
     const restaurantId = String(req.user?.restaurantId || 'rest-outlet');
 
     if (db) {
-      const { data: updated, error } = await db
+      let { data: updated, error } = await db
         .from('orders')
         .update({
           status: 'cancelled',
           updated_at: new Date().toISOString(),
         })
-        .or(`id.eq.${rawOrderId},id.eq.${orderId}`)
+        .eq('id', orderId)
         .select()
         .maybeSingle();
 
-      if (error) {
-        console.error('❌ Supabase order cancellation error:', error);
+      if (!updated) {
+        const { data: fallbackUpdated } = await db
+          .from('orders')
+          .update({
+            status: 'cancelled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', rawOrderId)
+          .select()
+          .maybeSingle();
+        updated = fallbackUpdated;
       }
 
       socketService.emitOrderStatusUpdated(restaurantId, rawOrderId, 'cancelled');
@@ -268,18 +277,27 @@ export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response
     const restaurantId = String(req.user?.restaurantId || 'rest-outlet');
 
     if (db) {
-      const { data: updated, error } = await db
+      let { data: updated, error } = await db
         .from('orders')
         .update({
           status,
           updated_at: new Date().toISOString(),
         })
-        .or(`id.eq.${rawOrderId},id.eq.${orderId}`)
+        .eq('id', orderId)
         .select()
         .maybeSingle();
 
-      if (error) {
-        console.error('❌ Supabase order status update error:', error);
+      if (!updated) {
+        const { data: fallbackUpdated } = await db
+          .from('orders')
+          .update({
+            status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', rawOrderId)
+          .select()
+          .maybeSingle();
+        updated = fallbackUpdated;
       }
 
       socketService.emitOrderStatusUpdated(restaurantId, rawOrderId, status);

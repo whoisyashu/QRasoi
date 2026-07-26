@@ -298,14 +298,29 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   cancelOrder: async (orderId) => {
+    const rawId = orderId ? (orderId.startsWith('QR-') ? orderId : `QR-${orderId}`) : '';
     set((state) => ({
-      orders: state.orders.filter((o) => o.id !== orderId),
+      orders: state.orders.map((o) =>
+        o.id === orderId || o.id === rawId || o.id.replace('QR-', '') === orderId.replace('QR-', '')
+          ? { ...o, status: 'cancelled' as OrderStatus }
+          : o
+      ),
     }));
 
     try {
-      await apiClient.patch(`/owner/orders/${orderId}/cancel`);
+      try {
+        const response = await apiClient.patch(`/owner/orders/${orderId}/cancel`);
+        console.log('✅ [Owner API] Order cancelled successfully:', response.data);
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          const response = await apiClient.patch(`/owner/orders/${orderId}/status`, { status: 'cancelled' });
+          console.log('✅ [Owner API] Order status updated to cancelled via fallback:', response.data);
+        } else {
+          throw err;
+        }
+      }
     } catch (err) {
-      console.warn('API order cancellation error:', err);
+      console.warn('⚠️ [Owner API] Order cancellation updated in local state:', err);
     }
   },
 
