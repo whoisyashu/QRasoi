@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { db } from '../config/db.js';
+import { socketService } from '../services/socket.service.js';
+import { inMemoryPublicOrders } from './public.controller.js';
 
 /**
  * GET /api/chef/queue
@@ -43,7 +45,7 @@ export const getChefQueue = async (req: AuthenticatedRequest, res: Response): Pr
           createdAt: row.created_at || new Date().toISOString(),
           estimatedTimeMinutes: Number(row.estimated_time_minutes || 15),
           items: (row.order_items || []).map((oi: any) => {
-            const isReady = Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
+            const isReady = oi.status === 'ready' || Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
             const cleanNotes = oi.notes ? oi.notes.replace('[STATUS:READY]', '').trim() : '';
 
             return {
@@ -79,13 +81,12 @@ export const getChefQueue = async (req: AuthenticatedRequest, res: Response): Pr
 /**
  * PATCH /api/chef/order-items/:itemId/status
  * Chef updates individual food item preparation status (preparing -> ready)
- * Encodes/decodes status in notes field so schema cache never fails!
- * When ALL items in an order are 'ready', the order automatically transitions to 'ready'
  */
 export const updateOrderItemStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { itemId } = req.params;
     const { status, orderId } = req.body; // status: 'ready' | 'preparing'
+    const restaurantId = req.user?.restaurantId || 'rest-outlet';
 
     if (db) {
       let targetOrderId = orderId;
@@ -118,41 +119,61 @@ export const updateOrderItemStatus = async (req: AuthenticatedRequest, res: Resp
           updatedNotes = currentNotes.replace('[STATUS:READY]', '').trim();
         }
 
-        await db
-          .from('order_items')
-          .update({ notes: updatedNotes })
-          .eq('id', item.id);
+        // Try updating explicit 'status' column + notes string tag for dual compatibility
+        try {
+          await db
+            .from('order_items')
+            .update({ status, notes: updatedNotes })
+            .eq('id', item.id);
+        } catch {
+          await db
+            .from('order_items')
+            .update({ notes: updatedNotes })
+            .eq('id', item.id);
+        }
       }
 
       // 2. Check if ALL items for this order are 'ready'
+      let isAllReady = false;
       if (targetOrderId) {
         const { data: allItems } = await db
           .from('order_items')
-          .select('notes')
+          .select('notes, status')
           .eq('order_id', targetOrderId);
 
         if (allItems && allItems.length > 0) {
-          const allReady = allItems.every((i: any) => i.notes && i.notes.includes('[STATUS:READY]'));
-          if (allReady) {
+          isAllReady = allItems.every(
+            (i: any) => i.status === 'ready' || (i.notes && i.notes.includes('[STATUS:READY]'))
+          );
+          if (isAllReady) {
             await db
               .from('orders')
               .update({ status: 'ready', updated_at: new Date().toISOString() })
               .eq('id', targetOrderId);
+
+            socketService.emitOrderStatusUpdated(restaurantId, targetOrderId, 'ready');
           }
         }
       }
+
+      // Emit targeted Socket.IO real-time event to connected owner, kitchen, and customer tracking rooms
+      socketService.emitOrderItemStatusUpdated(restaurantId, targetOrderId || orderId, {
+        itemId,
+        orderId: targetOrderId || orderId,
+        status,
+        isOrderReady: isAllReady,
+      });
 
       res.json({ id: itemId, orderId: targetOrderId, status });
       return;
     }
 
+    socketService.emitOrderItemStatusUpdated(restaurantId, orderId, { itemId, orderId, status });
     res.json({ id: itemId, status });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update order item status' });
   }
 };
-
-import { inMemoryPublicOrders } from './public.controller.js';
 
 /**
  * PATCH /api/chef/orders/:orderId/status
@@ -163,6 +184,7 @@ export const updateChefOrderStatus = async (req: AuthenticatedRequest, res: Resp
     const rawId = req.params.orderId as string;
     const targetOrderId = (rawId || '').trim();
     const { status } = req.body;
+    const restaurantId = req.user?.restaurantId || 'rest-outlet';
 
     // Sync status update to in-memory store for instant public tracking
     const memObj = inMemoryPublicOrders.get(targetOrderId);
@@ -184,20 +206,29 @@ export const updateChefOrderStatus = async (req: AuthenticatedRequest, res: Resp
         if (allItems) {
           for (const item of allItems) {
             const currentNotes = item.notes || '';
-            if (!currentNotes.includes('[STATUS:READY]')) {
-              const newNotes = currentNotes ? `${currentNotes} [STATUS:READY]` : '[STATUS:READY]';
+            const newNotes = !currentNotes.includes('[STATUS:READY]')
+              ? currentNotes ? `${currentNotes} [STATUS:READY]` : '[STATUS:READY]'
+              : currentNotes;
+            try {
+              await db.from('order_items').update({ status: 'ready', notes: newNotes }).eq('id', item.id);
+            } catch {
               await db.from('order_items').update({ notes: newNotes }).eq('id', item.id);
             }
           }
         }
       }
 
+      // Emit real-time Socket.IO event to Owner and Customer Order Status Page
+      socketService.emitOrderStatusUpdated(restaurantId, targetOrderId, status, updated);
+
       res.json(updated);
       return;
     }
 
+    socketService.emitOrderStatusUpdated(restaurantId, targetOrderId, status);
     res.json({ id: targetOrderId, status });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update order status' });
   }
 };
+

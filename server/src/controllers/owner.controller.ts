@@ -3,6 +3,8 @@ import { nanoid } from 'nanoid';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { db } from '../config/db.js';
 import { inMemoryRestaurants } from './auth.controller.js';
+import { socketService } from '../services/socket.service.js';
+import { cacheService } from '../services/cache.service.js';
 
 /**
  * GET /api/owner/restaurant
@@ -19,7 +21,7 @@ export const getRestaurantProfile = async (req: AuthenticatedRequest, res: Respo
     let rest: any = null;
 
     if (db) {
-      const { data, error } = await db.from('restaurants').select('*').eq('id', restaurantId).single();
+      const { data, error } = await db.from('restaurants').select('id, slug, name, tagline, address, phone, cuisine, opening_hours, logo_url, cover_image_url, order_timeout_minutes, qr_code_url').eq('id', restaurantId).single();
       if (!error && data) {
         rest = data;
       }
@@ -80,9 +82,10 @@ export const updateRestaurantProfile = async (req: AuthenticatedRequest, res: Re
       updated_at: new Date().toISOString(),
     };
 
-    // Update in-memory store
+    // Update in-memory store & invalidate public menu cache
     const currentMemory = inMemoryRestaurants.get(restaurantId) || {};
     inMemoryRestaurants.set(restaurantId, { ...currentMemory, ...updatedData });
+    cacheService.clear();
 
     // Update in Supabase DB
     if (db) {
@@ -152,7 +155,7 @@ export const getOwnerOrders = async (req: AuthenticatedRequest, res: Response): 
           createdAt: row.created_at || new Date().toISOString(),
           estimatedTimeMinutes: Number(row.estimated_time_minutes || 15),
           items: (row.order_items || []).map((oi: any) => {
-            const isReady = Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
+            const isReady = oi.status === 'ready' || Boolean(oi.notes && oi.notes.includes('[STATUS:READY]'));
             const cleanNotes = oi.notes ? oi.notes.replace('[STATUS:READY]', '').trim() : '';
 
             return {
@@ -185,7 +188,8 @@ export const getOwnerOrders = async (req: AuthenticatedRequest, res: Response): 
  */
 export const verifyOrderPayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { orderId } = req.params;
+    const orderId = String(req.params.orderId);
+    const restaurantId = String(req.user?.restaurantId || 'rest-outlet');
 
     if (db) {
       const { data: updated, error } = await db
@@ -200,10 +204,15 @@ export const verifyOrderPayment = async (req: AuthenticatedRequest, res: Respons
         .single();
 
       if (error) throw error;
+
+      // Emit real-time Socket.IO event to Chef KDS and Customer Order Status Page
+      socketService.emitPaymentVerified(restaurantId, orderId, { id: orderId, isPaymentVerified: true, status: 'preparing' });
+
       res.json(updated);
       return;
     }
 
+    socketService.emitPaymentVerified(restaurantId, orderId, { id: orderId, isPaymentVerified: true, status: 'preparing' });
     res.json({ id: orderId, isPaymentVerified: true, status: 'preparing' });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to verify order payment' });
@@ -476,6 +485,7 @@ export const deleteMenuItem = async (req: AuthenticatedRequest, res: Response): 
       await db.from('menu_items').delete().eq('id', itemId);
     }
 
+    cacheService.clear();
     res.json({ message: 'Menu item deleted' });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to delete menu item' });

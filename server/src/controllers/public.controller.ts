@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { nanoid } from 'nanoid';
 import { db } from '../config/db.js';
 import { checkTenantAccessStatus, isTenantSuspended } from '../utils/suspendedTenants.js';
+import { cacheService } from '../services/cache.service.js';
+import { socketService } from '../services/socket.service.js';
 
 /**
  * GET /api/public/r/:slug
@@ -27,10 +29,18 @@ export const getPublicMenuBySlug = async (req: Request, res: Response): Promise<
       return;
     }
 
+    // 1. Check TTL Cache for ultra-fast serving (<5ms)
+    const cacheKey = `menu:${slug}`;
+    const cachedResponse = cacheService.get(cacheKey);
+    if (cachedResponse) {
+      res.json(cachedResponse);
+      return;
+    }
+
     if (db) {
       const { data: restaurant, error: restErr } = await db
         .from('restaurants')
-        .select('*')
+        .select('id, slug, name, tagline, address, phone, cuisine, opening_hours, logo_url, cover_image_url, order_timeout_minutes, qr_code_url, status')
         .eq('slug', slug)
         .single();
 
@@ -98,7 +108,7 @@ export const getPublicMenuBySlug = async (req: Request, res: Response): Promise<
         };
       });
 
-      res.json({
+      const responsePayload = {
         restaurant: {
           id: restaurant.id,
           slug: restaurant.slug,
@@ -115,7 +125,10 @@ export const getPublicMenuBySlug = async (req: Request, res: Response): Promise<
         },
         categories: rawCategories || [],
         items,
-      });
+      };
+
+      cacheService.set(cacheKey, responsePayload, 300000);
+      res.json(responsePayload);
       return;
     }
 
@@ -238,6 +251,9 @@ export const placeCustomerOrder = async (req: Request, res: Response): Promise<v
       })),
     };
     inMemoryPublicOrders.set(orderId, formattedOrderObj);
+
+    // Emit real-time Socket.IO event to Owner and Kitchen rooms
+    socketService.emitOrderCreated(restaurantId, formattedOrderObj);
 
     res.status(201).json({
       message: 'Order placed successfully',

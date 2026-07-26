@@ -1,22 +1,29 @@
 import React, { useEffect, useRef } from 'react';
 import { ChefHat, Clock, CheckCircle2, Flame, RefreshCw, Check } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { formatDate } from '../utils/formatters';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { triggerNotification } from '../utils/notificationSound';
+import { socketClient } from '../services/socket';
 
 export const ChefDashboardPage: React.FC = () => {
-  const { orders, fetchLiveOrders, updateOrderStatus, updateOrderItemStatus } = useOrderStore();
+  const { orders, fetchLiveOrders, initRealtimeSubscription, updateOrderStatus, updateOrderItemStatus } = useOrderStore();
+  const { restaurant } = useAuthStore();
   const prevPreparingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     fetchLiveOrders();
+    initRealtimeSubscription();
+    if (restaurant?.id) {
+      socketClient.joinRestaurant(restaurant.id);
+    }
     const interval = setInterval(() => {
       fetchLiveOrders();
     }, 3000);
     return () => clearInterval(interval);
-  }, [fetchLiveOrders]);
+  }, [fetchLiveOrders, initRealtimeSubscription, restaurant?.id]);
 
   // Chef ONLY sees payment-verified orders (Rule 18)
   const paidOrders = orders.filter((o) => o.isPaymentVerified && o.status !== 'cancelled');

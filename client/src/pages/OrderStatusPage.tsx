@@ -9,13 +9,13 @@ import { formatCurrency, formatDate, getStatusConfig } from '../utils/formatters
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Order } from '../types';
 import { triggerNotification, requestNotificationPermission } from '../utils/notificationSound';
+import { socketClient } from '../services/socket';
 
 export const OrderStatusPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const { orders, fetchPublicOrder, fetchLiveOrders, checkExpiredOrders } = useOrderStore();
+  const { orders, fetchPublicOrder, fetchLiveOrders, checkExpiredOrders, initRealtimeSubscription } = useOrderStore();
   const { restaurant } = useAuthStore();
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -36,6 +36,14 @@ export const OrderStatusPage: React.FC = () => {
   );
 
   const prevStatusRef = useRef<string | null>(null);
+
+  // Join order real-time Socket.IO room for instant status progression alerts
+  useEffect(() => {
+    initRealtimeSubscription();
+    if (targetId || orderId) {
+      socketClient.joinOrder(targetId || orderId!);
+    }
+  }, [targetId, orderId, initRealtimeSubscription]);
 
   // Trigger sound effect and browser notification when order status progresses
   useEffect(() => {

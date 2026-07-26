@@ -1,14 +1,20 @@
+import http from 'http';
 import { app } from './app.js';
 import { ENV } from './config/env.js';
+import { socketService } from './services/socket.service.js';
 
 let PORT = Number(ENV.PORT) || 5000;
 
 const startServer = (portToTry: number) => {
-  const server = app.listen(portToTry, () => {
+  const server = http.createServer(app);
+  socketService.init(server);
+
+  server.listen(portToTry, () => {
     console.log(`========================================================`);
     console.log(`🚀 QRasoi Express Backend Server is running`);
     console.log(`📡 URL: http://localhost:${portToTry}`);
     console.log(`🏥 Healthcheck: http://localhost:${portToTry}/health`);
+    console.log(`⚡ Real-Time Engine: Socket.IO active`);
     console.log(`========================================================`);
   });
 

@@ -7,6 +7,8 @@ import { isSupabaseConfigured } from '../services/supabase';
 import { apiClient } from '../services/api';
 import { triggerNotification } from '../utils/notificationSound';
 
+import { socketClient } from '../services/socket';
+
 let previousOrderIds: Set<string> | null = null;
 
 interface OrderState {
@@ -294,6 +296,64 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   initRealtimeSubscription: () => {
+    const socket = socketClient.connect();
+
+    // Listen for real-time order creation (Owner & Kitchen)
+    socket.on('order:created', (newOrder: any) => {
+      if (newOrder && newOrder.id) {
+        set((state) => {
+          const exists = state.orders.some((o) => o.id === newOrder.id);
+          if (exists) return state;
+          triggerNotification(
+            '🔔 New Order Received!',
+            `Order ${newOrder.id} placed at ${newOrder.tableNumber} by ${newOrder.customerName}`
+          );
+          return { orders: [newOrder, ...state.orders] };
+        });
+      }
+    });
+
+    // Listen for payment verification (Kitchen KDS & Customer Order Page)
+    socket.on('order:payment_verified', (payload: any) => {
+      if (payload && payload.id) {
+        set((state) => ({
+          orders: state.orders.map((o) =>
+            o.id === payload.id ? { ...o, isPaymentVerified: true, status: 'preparing' } : o
+          ),
+        }));
+      }
+    });
+
+    // Listen for item status changes (Kitchen KDS & Customer Order Page)
+    socket.on('order_item:status_updated', (payload: any) => {
+      if (payload && payload.orderId && payload.itemId) {
+        set((state) => ({
+          orders: state.orders.map((o) => {
+            if (o.id !== payload.orderId) return o;
+            const updatedItems = o.items.map((i) =>
+              i.id === payload.itemId ? { ...i, status: payload.status } : i
+            );
+            return {
+              ...o,
+              items: updatedItems,
+              status: payload.isOrderReady ? 'ready' : o.status,
+            };
+          }),
+        }));
+      }
+    });
+
+    // Listen for overall order status changes
+    socket.on('order:status_updated', (payload: any) => {
+      if (payload && payload.orderId) {
+        set((state) => ({
+          orders: state.orders.map((o) =>
+            o.id === payload.orderId ? { ...o, status: payload.status } : o
+          ),
+        }));
+      }
+    });
+
     if (isSupabaseConfigured) {
       orderService.subscribeToLiveOrders((payload: any) => {
         if (payload.eventType === 'INSERT') {

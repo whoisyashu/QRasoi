@@ -121,7 +121,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     let user: any = null;
 
     if (db) {
-      const { data, error } = await db.from('users').select('*').eq('email', normalizedEmail).single();
+      const { data, error } = await db.from('users').select('id, email, password_hash, full_name, role, status, restaurant_id').eq('email', normalizedEmail).single();
       if (error) {
         console.warn(`Supabase login lookup for [${normalizedEmail}] result:`, error.message);
       }
