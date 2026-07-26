@@ -220,6 +220,81 @@ export const verifyOrderPayment = async (req: AuthenticatedRequest, res: Respons
 };
 
 /**
+ * PATCH /api/owner/orders/:orderId/cancel
+ * Cancel order by owner/cashier
+ */
+export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const rawOrderId = String(req.params.orderId);
+    const orderId = rawOrderId.startsWith('QR-') ? rawOrderId : `QR-${rawOrderId}`;
+    const restaurantId = String(req.user?.restaurantId || 'rest-outlet');
+
+    if (db) {
+      const { data: updated, error } = await db
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${rawOrderId},id.eq.${orderId}`)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Supabase order cancellation error:', error);
+      }
+
+      socketService.emitOrderStatusUpdated(restaurantId, rawOrderId, 'cancelled');
+      res.json(updated || { id: rawOrderId, status: 'cancelled' });
+      return;
+    }
+
+    socketService.emitOrderStatusUpdated(restaurantId, rawOrderId, 'cancelled');
+    res.json({ id: rawOrderId, status: 'cancelled' });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to cancel order' });
+  }
+};
+
+/**
+ * PATCH /api/owner/orders/:orderId/status
+ * Update order status by owner
+ */
+export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const rawOrderId = String(req.params.orderId);
+    const orderId = rawOrderId.startsWith('QR-') ? rawOrderId : `QR-${rawOrderId}`;
+    const { status } = req.body;
+    const restaurantId = String(req.user?.restaurantId || 'rest-outlet');
+
+    if (db) {
+      const { data: updated, error } = await db
+        .from('orders')
+        .update({
+          status,
+          updated_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${rawOrderId},id.eq.${orderId}`)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Supabase order status update error:', error);
+      }
+
+      socketService.emitOrderStatusUpdated(restaurantId, rawOrderId, status);
+      res.json(updated || { id: rawOrderId, status });
+      return;
+    }
+
+    socketService.emitOrderStatusUpdated(restaurantId, rawOrderId, status);
+    res.json({ id: rawOrderId, status });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update order status' });
+  }
+};
+
+/**
  * GET /api/owner/menu
  * Fetch all menu items for the authenticated owner's restaurant with resolved category names
  */

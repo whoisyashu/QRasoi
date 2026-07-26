@@ -5,6 +5,8 @@ import {
   updateRestaurantProfile,
   getOwnerOrders,
   verifyOrderPayment,
+  cancelOrder,
+  updateOrderStatus,
   getMenuItems,
   addMenuItem,
   updateMenuItem,
@@ -30,6 +32,8 @@ router.put('/restaurant', updateRestaurantProfile);
 // Orders & Menu Management (Supabase Database Persistence)
 router.get('/orders', getOwnerOrders);
 router.patch('/orders/:orderId/verify-payment', verifyOrderPayment);
+router.patch('/orders/:orderId/cancel', cancelOrder);
+router.patch('/orders/:orderId/status', updateOrderStatus);
 router.get('/menu', getMenuItems);
 router.post('/menu', addMenuItem);
 router.put('/menu/:itemId', updateMenuItem);
