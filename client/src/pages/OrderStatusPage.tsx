@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle2, AlertCircle, Sparkles, UtensilsCrossed, RefreshCw, Search } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Sparkles, UtensilsCrossed, RefreshCw, Search, Download, FileText } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useOrderStore } from '../store/useOrderStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { formatCurrency, formatDate, getStatusConfig } from '../utils/formatters';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Order } from '../types';
 
 export const OrderStatusPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -17,14 +20,16 @@ export const OrderStatusPage: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [manualIdInput, setManualIdInput] = useState('');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const targetId = orderId ? (orderId.startsWith('QR-') ? orderId : `QR-${orderId}`) : '';
 
-  // Case-insensitive order resolution
+  // Case-insensitive & flexible order resolution (QR-CMZOGQ, CMZOGQ, cmzogq)
   const order = orders.find(
     (o) =>
       o.id.toUpperCase() === targetId.toUpperCase() ||
-      (orderId && o.id.toUpperCase() === orderId.toUpperCase())
+      (orderId && o.id.toUpperCase() === orderId.toUpperCase()) ||
+      (orderId && o.id.toUpperCase().endsWith(orderId.toUpperCase()))
   );
 
   // Sync order status from live backend API / Supabase every 3 seconds
@@ -64,6 +69,144 @@ export const OrderStatusPage: React.FC = () => {
     navigate(`/order-status/${formatted}`);
   };
 
+  // Download PDF Bill Generator
+  const handleDownloadBillPdf = async () => {
+    if (!order) return;
+    setIsGeneratingPdf(true);
+
+    const restName = order.restaurantName || restaurant.name || 'QRasoi Digital Restaurant';
+    const restAddr = restaurant.address || 'Main Market Road, City Center';
+    const restPhone = restaurant.phone || '+91 98765 43210';
+
+    const invoiceContainer = document.createElement('div');
+    invoiceContainer.style.position = 'fixed';
+    invoiceContainer.style.left = '-9999px';
+    invoiceContainer.style.top = '-9999px';
+    invoiceContainer.style.width = '650px';
+    invoiceContainer.style.padding = '32px';
+    invoiceContainer.style.backgroundColor = '#ffffff';
+    invoiceContainer.style.fontFamily = 'Arial, sans-serif';
+
+    const itemsHtml = order.items
+      .map(
+        (item, idx) => `
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td style="padding: 10px 8px; font-size: 12px; color: #475569; text-align: center;">${idx + 1}</td>
+        <td style="padding: 10px 8px; font-size: 12px; font-weight: 700; color: #0f172a;">
+          ${item.menuItem?.name || 'Dish'}
+          ${item.notes ? `<div style="font-size: 10px; color: #ea580c; font-style: italic; font-weight: 400; margin-top: 2px;">Note: ${item.notes}</div>` : ''}
+        </td>
+        <td style="padding: 10px 8px; font-size: 12px; color: #0f172a; text-align: center; font-weight: 600;">${item.quantity}</td>
+        <td style="padding: 10px 8px; font-size: 12px; color: #475569; text-align: right;">₹${(item.menuItem?.price || 0).toLocaleString('en-IN')}</td>
+        <td style="padding: 10px 8px; font-size: 12px; font-weight: 700; color: #0f172a; text-align: right;">₹${((item.menuItem?.price || 0) * item.quantity).toLocaleString('en-IN')}</td>
+      </tr>
+    `
+      )
+      .join('');
+
+    invoiceContainer.innerHTML = `
+      <div style="background-color: #ffffff; color: #0f172a; font-family: Arial, sans-serif; line-height: 1.4;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 2px solid #ea580c;">
+          <div>
+            <h1 style="font-size: 24px; font-weight: 800; color: #ea580c; margin: 0;">${restName}</h1>
+            <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">${restAddr}</p>
+            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Phone: ${restPhone}</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: 1px;">TAX INVOICE</div>
+            <div style="display: inline-block; background-color: #ecfdf5; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; margin-top: 6px; border: 1px solid #a7f3d0;">
+              PAYMENT VERIFIED
+            </div>
+          </div>
+        </div>
+
+        <!-- Bill Metadata -->
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div>
+            <p style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin: 0;">Customer Details:</p>
+            <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 2px 0 0 0;">${order.customerName}</p>
+            <p style="font-size: 12px; color: #475569; margin: 2px 0 0 0;">${order.tableNumber || 'Table 1'} ${order.customerPhone ? `• ${order.customerPhone}` : ''}</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin: 0;">Order Reference:</p>
+            <p style="font-size: 16px; font-weight: 800; color: #ea580c; font-family: monospace; margin: 2px 0 0 0;">${order.id}</p>
+            <p style="font-size: 12px; color: #475569; margin: 2px 0 0 0;">Billing Date: ${new Date(order.createdAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-top: 24px;">
+          <thead>
+            <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 35px;">#</th>
+              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: left;">Ordered Dish Item</th>
+              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 45px;">Qty</th>
+              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 85px;">Price</th>
+              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 95px;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <!-- Summary -->
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+          <div style="width: 230px; background-color: #fff7ed; padding: 14px 16px; border-radius: 12px; border: 1px solid #fed7aa;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569; margin-bottom: 6px;">
+              <span>Subtotal:</span>
+              <span style="font-weight: 700;">₹${(order.subtotal || order.total || 0).toLocaleString('en-IN')}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569; margin-bottom: 8px;">
+              <span>GST / Taxes (0%):</span>
+              <span style="font-weight: 700;">₹0</span>
+            </div>
+            <div style="border-top: 1.5px solid #fdba74; padding-top: 8px; display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #ea580c;">
+              <span>Grand Total:</span>
+              <span>₹${(order.total || order.subtotal || 0).toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Branding -->
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <p style="font-size: 12px; font-weight: 700; color: #334155; margin: 0;">Thank you for dining with us!</p>
+            <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Please visit again soon.</p>
+          </div>
+
+          <div style="text-align: right; display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; tracking-wider;">Powered by</span>
+            <span style="font-size: 16px; font-weight: 800; color: #ea580c;">QRasoi</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(invoiceContainer);
+
+    try {
+      const canvas = await html2canvas(invoiceContainer, { scale: 2, useCORS: true });
+      document.body.removeChild(invoiceContainer);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`QRasoi_Bill_${order.id}.pdf`);
+      setIsGeneratingPdf(false);
+    } catch (err) {
+      if (document.body.contains(invoiceContainer)) {
+        document.body.removeChild(invoiceContainer);
+      }
+      setIsGeneratingPdf(false);
+      console.error('PDF Generation Error:', err);
+    }
+  };
+
   // Loading Screen
   if (isInitialLoading && !order) {
     return (
@@ -95,7 +238,7 @@ export const OrderStatusPage: React.FC = () => {
           <div className="flex gap-2">
             <input
               type="text"
-              placeholder="e.g. QR-1082 or 1082"
+              placeholder="e.g. QR-CMZOGQ or CMZOGQ"
               className="flex-1 px-3.5 py-2.5 text-xs border border-slate-200 rounded-xl outline-none focus:border-orange-500 font-mono font-bold"
               value={manualIdInput}
               onChange={(e) => setManualIdInput(e.target.value)}
@@ -170,7 +313,7 @@ export const OrderStatusPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="inline-flex items-center justify-center">
+        <div className="inline-flex items-center justify-center gap-2">
           <Badge status={order.status}>{statusConfig.label}</Badge>
         </div>
 
@@ -181,6 +324,28 @@ export const OrderStatusPage: React.FC = () => {
           {order.status === 'completed' && 'Order completed. Thank you for dining with us!'}
           {order.status === 'cancelled' && 'This order has been cancelled.'}
         </p>
+
+        {/* Download PDF Bill Action Button */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleDownloadBillPdf}
+            disabled={isGeneratingPdf}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {isGeneratingPdf ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+                <span>Generating Tax Invoice PDF...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 text-orange-400" />
+                <span>Download Official Bill / Tax Invoice (PDF)</span>
+              </>
+            )}
+          </button>
+        </div>
       </Card>
 
       {/* Step Tracker Progress Bar */}
