@@ -76,76 +76,83 @@ export const OrderStatusPage: React.FC = () => {
     if (!order) return;
     setIsGeneratingPdf(true);
 
-    const restName = order.restaurantName || restaurant.name || 'QRasoi Digital Restaurant';
-    const restAddr = restaurant.address || 'Main Market Road, City Center';
-    const restPhone = restaurant.phone || '+91 98765 43210';
+    const restName =
+      order.restaurantName && order.restaurantName !== 'Mock Restaurant' && order.restaurantName !== 'QRasoi Restaurant'
+        ? order.restaurantName
+        : restaurant.name && restaurant.name !== 'Your Restaurant Name'
+        ? restaurant.name
+        : 'DineVerse Bistro';
+
+    const restAddr = restaurant.address || 'Flat No. 13A, Bankey Bihari Enclave';
+    const restPhone = restaurant.phone || '+91 9368967944';
 
     const invoiceContainer = document.createElement('div');
     invoiceContainer.style.position = 'fixed';
     invoiceContainer.style.left = '-9999px';
     invoiceContainer.style.top = '-9999px';
-    invoiceContainer.style.width = '650px';
-    invoiceContainer.style.padding = '32px';
+    invoiceContainer.style.width = '680px';
+    invoiceContainer.style.padding = '36px';
     invoiceContainer.style.backgroundColor = '#ffffff';
-    invoiceContainer.style.fontFamily = 'Arial, sans-serif';
+    invoiceContainer.style.fontFamily = 'Arial, Helvetica, sans-serif';
 
     const itemsHtml = order.items
       .map(
         (item, idx) => `
-      <tr style="border-bottom: 1px solid #f1f5f9;">
-        <td style="padding: 10px 8px; font-size: 12px; color: #475569; text-align: center;">${idx + 1}</td>
-        <td style="padding: 10px 8px; font-size: 12px; font-weight: 700; color: #0f172a;">
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 12px 8px; font-size: 12px; color: #64748b; text-align: center; font-weight: 600;">${idx + 1}</td>
+        <td style="padding: 12px 10px; font-size: 13px; font-weight: 700; color: #0f172a;">
           ${item.menuItem?.name || 'Dish'}
-          ${item.notes ? `<div style="font-size: 10px; color: #ea580c; font-style: italic; font-weight: 400; margin-top: 2px;">Note: ${item.notes}</div>` : ''}
+          ${item.notes ? `<div style="font-size: 11px; color: #ea580c; font-style: italic; font-weight: 400; margin-top: 3px;">Special Note: ${item.notes}</div>` : ''}
         </td>
-        <td style="padding: 10px 8px; font-size: 12px; color: #0f172a; text-align: center; font-weight: 600;">${item.quantity}</td>
-        <td style="padding: 10px 8px; font-size: 12px; color: #475569; text-align: right;">₹${(item.menuItem?.price || 0).toLocaleString('en-IN')}</td>
-        <td style="padding: 10px 8px; font-size: 12px; font-weight: 700; color: #0f172a; text-align: right;">₹${((item.menuItem?.price || 0) * item.quantity).toLocaleString('en-IN')}</td>
+        <td style="padding: 12px 8px; font-size: 13px; color: #0f172a; text-align: center; font-weight: 700;">${item.quantity}</td>
+        <td style="padding: 12px 10px; font-size: 12px; color: #475569; text-align: right; font-weight: 600;">Rs. ${(item.menuItem?.price || 0).toLocaleString('en-IN')}</td>
+        <td style="padding: 12px 10px; font-size: 13px; font-weight: 700; color: #0f172a; text-align: right;">Rs. ${((item.menuItem?.price || 0) * item.quantity).toLocaleString('en-IN')}</td>
       </tr>
     `
       )
       .join('');
 
     invoiceContainer.innerHTML = `
-      <div style="background-color: #ffffff; color: #0f172a; font-family: Arial, sans-serif; line-height: 1.4;">
+      <div style="background-color: #ffffff; color: #0f172a; font-family: Arial, Helvetica, sans-serif; line-height: 1.4;">
         <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 2px solid #ea580c;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; border-bottom: 3px solid #ea580c;">
           <div>
-            <h1 style="font-size: 24px; font-weight: 800; color: #ea580c; margin: 0;">${restName}</h1>
-            <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">${restAddr}</p>
-            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Phone: ${restPhone}</p>
+            <h1 style="font-size: 26px; font-weight: 800; color: #ea580c; margin: 0; letter-spacing: -0.5px;">${restName}</h1>
+            <p style="font-size: 12px; color: #64748b; margin: 6px 0 0 0; font-weight: 500;">${restAddr}</p>
+            <p style="font-size: 12px; color: #64748b; margin: 3px 0 0 0; font-weight: 500;">Phone: ${restPhone}</p>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: 1px;">TAX INVOICE</div>
-            <div style="display: inline-block; background-color: #ecfdf5; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; margin-top: 6px; border: 1px solid #a7f3d0;">
-              PAYMENT VERIFIED
+            <div style="font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: 1.5px;">OFFICIAL INVOICE</div>
+            <div style="display: inline-block; background-color: #dcfce7; color: #15803d; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; margin-top: 8px; border: 1px solid #86efac; text-transform: uppercase;">
+              PAYMENT COMPLETED
             </div>
           </div>
         </div>
 
         <!-- Bill Metadata -->
-        <div style="display: flex; justify-content: space-between; margin-top: 20px; background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
-          <div>
-            <p style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin: 0;">Customer Details:</p>
-            <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 2px 0 0 0;">${order.customerName}</p>
-            <p style="font-size: 12px; color: #475569; margin: 2px 0 0 0;">${order.tableNumber || 'Table 1'} ${order.customerPhone ? `• ${order.customerPhone}` : ''}</p>
+        <div style="display: flex; justify-content: space-between; margin-top: 22px; background-color: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div style="flex: 1;">
+            <p style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">Customer Details:</p>
+            <p style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">${order.customerName}</p>
+            <p style="font-size: 13px; color: #334155; margin: 3px 0 0 0; font-weight: 700;">${order.tableNumber || 'Table 1'}</p>
+            ${order.customerPhone ? `<p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Mobile: ${order.customerPhone}</p>` : ''}
           </div>
-          <div style="text-align: right;">
-            <p style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin: 0;">Order Reference:</p>
-            <p style="font-size: 16px; font-weight: 800; color: #ea580c; font-family: monospace; margin: 2px 0 0 0;">${order.id}</p>
-            <p style="font-size: 12px; color: #475569; margin: 2px 0 0 0;">Billing Date: ${new Date(order.createdAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+          <div style="text-align: right; flex: 1;">
+            <p style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">Order Information:</p>
+            <p style="font-size: 17px; font-weight: 800; color: #ea580c; font-family: monospace; margin: 4px 0 0 0;">${order.id}</p>
+            <p style="font-size: 12px; color: #475569; margin: 3px 0 0 0; font-weight: 600;">Billing Date: ${new Date(order.createdAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
           </div>
         </div>
 
         <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-top: 24px;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 24px; table-layout: fixed;">
           <thead>
             <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
               <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 35px;">#</th>
-              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: left;">Ordered Dish Item</th>
-              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 45px;">Qty</th>
-              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 85px;">Price</th>
-              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 95px;">Amount</th>
+              <th style="padding: 10px 10px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: left; width: 260px;">Ordered Dish Item</th>
+              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 50px;">Qty</th>
+              <th style="padding: 10px 10px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 100px;">Price</th>
+              <th style="padding: 10px 10px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 110px;">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -154,33 +161,33 @@ export const OrderStatusPage: React.FC = () => {
         </table>
 
         <!-- Summary -->
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-          <div style="width: 230px; background-color: #fff7ed; padding: 14px 16px; border-radius: 12px; border: 1px solid #fed7aa;">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569; margin-bottom: 6px;">
+        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+          <div style="width: 250px; background-color: #fff7ed; padding: 16px 18px; border-radius: 12px; border: 1.5px solid #fed7aa;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 8px;">
               <span>Subtotal:</span>
-              <span style="font-weight: 700;">₹${(order.subtotal || order.total || 0).toLocaleString('en-IN')}</span>
+              <span style="font-weight: 700; color: #0f172a;">Rs. ${(order.subtotal || order.total || 0).toLocaleString('en-IN')}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #475569; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 10px;">
               <span>GST / Taxes (0%):</span>
-              <span style="font-weight: 700;">₹0</span>
+              <span style="font-weight: 700; color: #0f172a;">Rs. 0</span>
             </div>
-            <div style="border-top: 1.5px solid #fdba74; padding-top: 8px; display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #ea580c;">
+            <div style="border-top: 2px solid #fdba74; padding-top: 10px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: #ea580c;">
               <span>Grand Total:</span>
-              <span>₹${(order.total || order.subtotal || 0).toLocaleString('en-IN')}</span>
+              <span>Rs. ${(order.total || order.subtotal || 0).toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>
 
         <!-- Footer Branding -->
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-top: 36px; padding-top: 18px; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <p style="font-size: 12px; font-weight: 700; color: #334155; margin: 0;">Thank you for dining with us!</p>
-            <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Please visit again soon.</p>
+            <p style="font-size: 13px; font-weight: 700; color: #0f172a; margin: 0;">Thank you for dining with us!</p>
+            <p style="font-size: 11px; color: #64748b; margin: 3px 0 0 0;">Please visit again soon.</p>
           </div>
 
-          <div style="text-align: right; display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; tracking-wider;">Powered by</span>
-            <span style="font-size: 16px; font-weight: 800; color: #ea580c;">QRasoi</span>
+          <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Powered by</span>
+            <span style="font-size: 18px; font-weight: 800; color: #ea580c; font-family: Arial, sans-serif;">QRasoi</span>
           </div>
         </div>
       </div>
