@@ -227,7 +227,7 @@ export const OrderStatusPage: React.FC = () => {
           <p style="margin: 4px 0 0 0; color: #444444;">Please Visit Again Soon!</p>
 
           <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #aaaaaa; text-align: center; font-size: 11px; color: #475569; font-family: sans-serif;">
-            <span>Powered by <strong style="color: #ea580c; font-weight: 900;">QRasoi POS</strong> • www.qrasoi.app</span>
+            <span>Powered by <strong style="color: #ea580c; font-weight: 900;">QRasoi Digital Menus</strong> • www.qrasoi.netlify.app</span>
           </div>
         </div>
       </div>
