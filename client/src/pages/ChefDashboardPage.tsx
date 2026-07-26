@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ChefHat, Clock, CheckCircle2, Flame, RefreshCw, Check } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
 import { formatDate } from '../utils/formatters';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { triggerNotification } from '../utils/notificationSound';
 
 export const ChefDashboardPage: React.FC = () => {
   const { orders, fetchLiveOrders, updateOrderStatus, updateOrderItemStatus } = useOrderStore();
+  const prevPreparingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     fetchLiveOrders();
@@ -23,6 +25,24 @@ export const ChefDashboardPage: React.FC = () => {
   const preparingOrders = paidOrders.filter(
     (o) => o.status === 'preparing' || (o.status === 'pending' && o.isPaymentVerified)
   );
+
+  // Notify chef when an order enters kitchen preparing queue
+  useEffect(() => {
+    const currentPreparingIds = new Set(preparingOrders.map((o) => o.id));
+
+    if (prevPreparingRef.current.size > 0) {
+      const newlyArrived = preparingOrders.filter((o) => !prevPreparingRef.current.has(o.id));
+      if (newlyArrived.length > 0) {
+        const target = newlyArrived[0];
+        triggerNotification(
+          '👨‍🍳 New Order Ready to Cook!',
+          `Order ${target.id} (${target.tableNumber}) payment verified. Start preparing!`
+        );
+      }
+    }
+
+    prevPreparingRef.current = currentPreparingIds;
+  }, [preparingOrders]);
 
   // Orders where ALL items are marked ready
   const readyOrders = paidOrders.filter((o) => o.status === 'ready');

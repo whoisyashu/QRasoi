@@ -5,6 +5,9 @@ import { generateOrderId } from '../utils/formatters';
 import { orderService } from '../services/orderService';
 import { isSupabaseConfigured } from '../services/supabase';
 import { apiClient } from '../services/api';
+import { triggerNotification } from '../utils/notificationSound';
+
+let previousOrderIds: Set<string> | null = null;
 
 interface OrderState {
   orders: Order[];
@@ -78,6 +81,19 @@ export const useOrderStore = create<OrderState>((set, get) => ({
             status: oi.status || 'preparing',
           })),
         }));
+
+        // Detect newly arrived orders for sound notification
+        if (previousOrderIds !== null) {
+          const brandNewOrders = mappedOrders.filter((o) => !previousOrderIds!.has(o.id));
+          if (brandNewOrders.length > 0) {
+            const latest = brandNewOrders[0];
+            triggerNotification(
+              '🔔 New Order Received!',
+              `Order ${latest.id} placed at ${latest.tableNumber} by ${latest.customerName}`
+            );
+          }
+        }
+        previousOrderIds = new Set(mappedOrders.map((o) => o.id));
 
         set({ orders: mappedOrders, isLoading: false });
         return;

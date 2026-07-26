@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle2, AlertCircle, Sparkles, UtensilsCrossed, RefreshCw, Search, Download, FileText } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Sparkles, UtensilsCrossed, RefreshCw, Search, Download, FileText, Bell, Volume2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useOrderStore } from '../store/useOrderStore';
@@ -10,6 +10,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Order } from '../types';
+import { triggerNotification, requestNotificationPermission } from '../utils/notificationSound';
 
 export const OrderStatusPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -33,6 +34,33 @@ export const OrderStatusPage: React.FC = () => {
       (orderId && normalizeId(o.id) === normalizeId(orderId)) ||
       (orderId && normalizeId(o.id).endsWith(normalizeId(orderId)))
   );
+
+  const prevStatusRef = useRef<string | null>(null);
+
+  // Trigger sound effect and browser notification when order status progresses
+  useEffect(() => {
+    if (order) {
+      if (prevStatusRef.current !== null && prevStatusRef.current !== order.status) {
+        if (order.status === 'ready' || order.status === 'completed') {
+          triggerNotification(
+            '🍲 Food is Ready to Serve!',
+            `Your order ${order.id} is ready! Please collect it from the counter.`
+          );
+        } else if (order.status === 'preparing') {
+          triggerNotification(
+            '👨‍🍳 Kitchen Started Preparing!',
+            `Your order ${order.id} payment was verified and cooking has started.`
+          );
+        }
+      }
+      prevStatusRef.current = order.status;
+    }
+  }, [order?.status, order?.id]);
+
+  // Request browser notification permissions on page mount
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
 
   // Sync order status from live backend API / Supabase every 3 seconds
   useEffect(() => {
@@ -77,82 +105,88 @@ export const OrderStatusPage: React.FC = () => {
     setIsGeneratingPdf(true);
 
     const restName =
-      order.restaurantName && order.restaurantName !== 'Mock Restaurant' && order.restaurantName !== 'QRasoi Restaurant'
+      order.restaurantName &&
+      order.restaurantName !== 'Mock Restaurant' &&
+      order.restaurantName !== 'QRasoi Restaurant' &&
+      order.restaurantName !== 'Your Restaurant Name'
         ? order.restaurantName
-        : restaurant.name && restaurant.name !== 'Your Restaurant Name'
+        : restaurant.name && restaurant.name !== 'Your Restaurant Name' && restaurant.name !== 'Mock Restaurant'
         ? restaurant.name
         : 'DineVerse Bistro';
 
-    const restAddr = restaurant.address || 'Flat No. 13A, Bankey Bihari Enclave';
-    const restPhone = restaurant.phone || '+91 9368967944';
+    const restAddr = order.restaurantAddress || restaurant.address || 'Flat No. 13A, Bankey Bihari Enclave';
+    const restPhone = order.restaurantPhone || restaurant.phone || '+91 9368967944';
 
     const invoiceContainer = document.createElement('div');
     invoiceContainer.style.position = 'fixed';
     invoiceContainer.style.left = '-9999px';
     invoiceContainer.style.top = '-9999px';
-    invoiceContainer.style.width = '680px';
-    invoiceContainer.style.padding = '36px';
+    invoiceContainer.style.width = '480px';
+    invoiceContainer.style.padding = '28px';
     invoiceContainer.style.backgroundColor = '#ffffff';
-    invoiceContainer.style.fontFamily = 'Arial, Helvetica, sans-serif';
+    invoiceContainer.style.fontFamily = "'Courier New', Courier, monospace";
 
     const itemsHtml = order.items
       .map(
-        (item, idx) => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 12px 8px; font-size: 12px; color: #64748b; text-align: center; font-weight: 600;">${idx + 1}</td>
-        <td style="padding: 12px 10px; font-size: 13px; font-weight: 700; color: #0f172a;">
+        (item) => `
+      <tr style="border-bottom: 1px dotted #d1d5db;">
+        <td style="padding: 8px 0; font-weight: 700; color: #0f172a; text-align: left; vertical-align: top;">
           ${item.menuItem?.name || 'Dish'}
-          ${item.notes ? `<div style="font-size: 11px; color: #ea580c; font-style: italic; font-weight: 400; margin-top: 3px;">Special Note: ${item.notes}</div>` : ''}
+          ${item.notes ? `<div style="font-size: 9.5px; color: #ea580c; font-style: italic; font-weight: 400; margin-top: 2px;">* ${item.notes}</div>` : ''}
         </td>
-        <td style="padding: 12px 8px; font-size: 13px; color: #0f172a; text-align: center; font-weight: 700;">${item.quantity}</td>
-        <td style="padding: 12px 10px; font-size: 12px; color: #475569; text-align: right; font-weight: 600;">Rs. ${(item.menuItem?.price || 0).toLocaleString('en-IN')}</td>
-        <td style="padding: 12px 10px; font-size: 13px; font-weight: 700; color: #0f172a; text-align: right;">Rs. ${((item.menuItem?.price || 0) * item.quantity).toLocaleString('en-IN')}</td>
+        <td style="padding: 8px 0; text-align: center; font-weight: 700; color: #0f172a; vertical-align: top;">${item.quantity}</td>
+        <td style="padding: 8px 0; text-align: right; color: #475569; vertical-align: top;">Rs.${(item.menuItem?.price || 0)}</td>
+        <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #0f172a; vertical-align: top;">Rs.${((item.menuItem?.price || 0) * item.quantity)}</td>
       </tr>
     `
       )
       .join('');
 
+    const formattedDate = new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const formattedTime = new Date(order.createdAt || Date.now()).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+
     invoiceContainer.innerHTML = `
-      <div style="background-color: #ffffff; color: #0f172a; font-family: Arial, Helvetica, sans-serif; line-height: 1.4;">
+      <div style="background-color: #ffffff; color: #000000; font-family: 'Courier New', Courier, monospace; line-height: 1.35; padding: 10px;">
         <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; border-bottom: 3px solid #ea580c;">
-          <div>
-            <h1 style="font-size: 26px; font-weight: 800; color: #ea580c; margin: 0; letter-spacing: -0.5px;">${restName}</h1>
-            <p style="font-size: 12px; color: #64748b; margin: 6px 0 0 0; font-weight: 500;">${restAddr}</p>
-            <p style="font-size: 12px; color: #64748b; margin: 3px 0 0 0; font-weight: 500;">Phone: ${restPhone}</p>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: 1.5px;">OFFICIAL INVOICE</div>
-            <div style="display: inline-block; background-color: #dcfce7; color: #15803d; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; margin-top: 8px; border: 1px solid #86efac; text-transform: uppercase;">
-              PAYMENT COMPLETED
-            </div>
-          </div>
+        <div style="text-align: center; border-bottom: 2px dashed #000000; padding-bottom: 14px; margin-bottom: 14px;">
+          <h1 style="font-size: 22px; font-weight: 900; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-family: sans-serif;">${restName}</h1>
+          <p style="font-size: 11px; color: #333333; margin: 5px 0 0 0; font-weight: 600;">${restAddr}</p>
+          <p style="font-size: 11px; color: #333333; margin: 2px 0 0 0; font-weight: 600;">Contact: ${restPhone}</p>
+          <p style="font-size: 10px; color: #666666; margin: 4px 0 0 0;">FSSAI Lic No: 11521001000189</p>
         </div>
 
-        <!-- Bill Metadata -->
-        <div style="display: flex; justify-content: space-between; margin-top: 22px; background-color: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0;">
-          <div style="flex: 1;">
-            <p style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">Customer Details:</p>
-            <p style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">${order.customerName}</p>
-            <p style="font-size: 13px; color: #334155; margin: 3px 0 0 0; font-weight: 700;">${order.tableNumber || 'Table 1'}</p>
-            ${order.customerPhone ? `<p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Mobile: ${order.customerPhone}</p>` : ''}
+        <!-- Meta info -->
+        <div style="border-bottom: 2px dashed #000000; padding-bottom: 10px; margin-bottom: 14px; font-size: 11.5px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span><strong>ORDER REF:</strong> ${order.id}</span>
+            <span><strong>DATE:</strong> ${formattedDate}</span>
           </div>
-          <div style="text-align: right; flex: 1;">
-            <p style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">Order Information:</p>
-            <p style="font-size: 17px; font-weight: 800; color: #ea580c; font-family: monospace; margin: 4px 0 0 0;">${order.id}</p>
-            <p style="font-size: 12px; color: #475569; margin: 3px 0 0 0; font-weight: 600;">Billing Date: ${new Date(order.createdAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span><strong>CUSTOMER:</strong> ${order.customerName}</span>
+            <span><strong>TIME:</strong> ${formattedTime}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><strong>TABLE:</strong> ${order.tableNumber || 'Table 1'}</span>
+            ${order.customerPhone ? `<span><strong>MOBILE:</strong> ${order.customerPhone}</span>` : ''}
           </div>
         </div>
 
         <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-top: 24px; table-layout: fixed;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11.5px; table-layout: fixed;">
           <thead>
-            <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
-              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 35px;">#</th>
-              <th style="padding: 10px 10px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: left; width: 260px;">Ordered Dish Item</th>
-              <th style="padding: 10px 8px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 50px;">Qty</th>
-              <th style="padding: 10px 10px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 100px;">Price</th>
-              <th style="padding: 10px 10px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right; width: 110px;">Amount</th>
+            <tr style="border-bottom: 2px dashed #000000; text-align: left;">
+              <th style="padding: 6px 0; width: 50%; color: #000000;">ITEM DESCRIPTION</th>
+              <th style="padding: 6px 0; width: 14%; text-align: center; color: #000000;">QTY</th>
+              <th style="padding: 6px 0; width: 18%; text-align: right; color: #000000;">RATE</th>
+              <th style="padding: 6px 0; width: 18%; text-align: right; color: #000000;">AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -160,34 +194,35 @@ export const OrderStatusPage: React.FC = () => {
           </tbody>
         </table>
 
-        <!-- Summary -->
-        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
-          <div style="width: 250px; background-color: #fff7ed; padding: 16px 18px; border-radius: 12px; border: 1.5px solid #fed7aa;">
-            <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 8px;">
-              <span>Subtotal:</span>
-              <span style="font-weight: 700; color: #0f172a;">Rs. ${(order.subtotal || order.total || 0).toLocaleString('en-IN')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 10px;">
-              <span>GST / Taxes (0%):</span>
-              <span style="font-weight: 700; color: #0f172a;">Rs. 0</span>
-            </div>
-            <div style="border-top: 2px solid #fdba74; padding-top: 10px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: #ea580c;">
-              <span>Grand Total:</span>
-              <span>Rs. ${(order.total || order.subtotal || 0).toLocaleString('en-IN')}</span>
-            </div>
+        <!-- Totals -->
+        <div style="border-top: 2px dashed #000000; border-bottom: 2px dashed #000000; padding: 10px 0; margin-bottom: 16px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Item Subtotal</span>
+            <span>Rs.${(order.subtotal || order.total || 0).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>CGST (0%)</span>
+            <span>Rs.0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span>SGST (0%)</span>
+            <span>Rs.0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; color: #000000; border-top: 1px dashed #000000; padding-top: 8px; margin-top: 4px;">
+            <span>NET AMOUNT PAID</span>
+            <span>Rs.${(order.total || order.subtotal || 0).toFixed(2)}</span>
           </div>
         </div>
 
-        <!-- Footer Branding -->
-        <div style="margin-top: 36px; padding-top: 18px; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <p style="font-size: 13px; font-weight: 700; color: #0f172a; margin: 0;">Thank you for dining with us!</p>
-            <p style="font-size: 11px; color: #64748b; margin: 3px 0 0 0;">Please visit again soon.</p>
-          </div>
+        <!-- Footer -->
+        <div style="text-align: center; font-size: 11px;">
+          <p style="font-weight: 700; color: #000000; margin: 0; font-family: sans-serif;">*** THANK YOU FOR DINING WITH US ***</p>
+          <p style="margin: 4px 0 0 0; color: #444444;">Please Visit Again Soon!</p>
 
-          <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Powered by</span>
-            <span style="font-size: 18px; font-weight: 800; color: #ea580c; font-family: Arial, sans-serif;">QRasoi</span>
+          <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #aaaaaa; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 10.5px; color: #666666; font-family: sans-serif;">
+            <span>Powered by</span>
+            <strong style="color: #ea580c; font-size: 13px; font-weight: 900;">QRasoi POS</strong>
+            <span>• www.qrasoi.app</span>
           </div>
         </div>
       </div>
@@ -296,6 +331,22 @@ export const OrderStatusPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFDF8] py-8 px-4 sm:px-6 max-w-2xl mx-auto space-y-6">
+      {/* Keep Tab Open & Sound Alert Notification Banner */}
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold">
+        <div className="flex items-center gap-2.5">
+          <Bell className="w-5 h-5 text-amber-300 animate-bounce shrink-0" />
+          <span>Keep this tab open to track your live order status and hear sound alerts when your food is ready!</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => requestNotificationPermission()}
+          className="bg-white text-orange-600 px-3 py-1.5 rounded-xl font-bold hover:bg-orange-50 transition-colors shrink-0 cursor-pointer flex items-center gap-1.5 shadow-xs"
+        >
+          <Volume2 className="w-3.5 h-3.5" />
+          <span>Enable Sound Alerts</span>
+        </button>
+      </div>
+
       {/* Restaurant Header */}
       <div className="text-center space-y-1">
         <span className="bg-orange-50 text-orange-600 text-xs font-extrabold px-3.5 py-1 rounded-full border border-orange-200 inline-block">

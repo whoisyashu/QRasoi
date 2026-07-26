@@ -25,7 +25,7 @@ export const CheckoutPage: React.FC = () => {
   const { createOrder } = useOrderStore();
   const { restaurant } = useAuthStore();
 
-  const [tableNumber, setTableNumber] = useState('Table 4');
+  const [tableNumber, setTableNumber] = useState('Table 1');
   const subtotal = getSubtotal();
 
   const {
@@ -106,23 +106,33 @@ export const CheckoutPage: React.FC = () => {
             leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#334155]">Table / Token Number</label>
-            <div className="grid grid-cols-3 gap-2">
-              {['Table 4', 'Table 9', 'Takeaway Token'].map((t) => (
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#334155]">Select Table Number *</label>
+            <div className="grid grid-cols-5 gap-2">
+              {['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Table 7', 'Table 8', 'Table 9', 'Table 10'].map((t) => (
                 <button
                   type="button"
                   key={t}
                   onClick={() => setTableNumber(t)}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                     tableNumber === t
-                      ? 'border-[#F97316] bg-orange-50 text-[#F97316]'
-                      : 'border-[#E5E7EB] bg-white text-[#334155]'
+                      ? 'border-[#F97316] bg-orange-50 text-[#F97316] ring-2 ring-orange-500/20'
+                      : 'border-[#E5E7EB] bg-white text-[#334155] hover:bg-slate-50'
                   }`}
                 >
                   {t}
                 </button>
               ))}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-slate-500 font-medium">Or enter table:</span>
+              <input
+                type="text"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-orange-600 outline-none focus:border-orange-500 w-36"
+                placeholder="e.g. Table 12"
+              />
             </div>
           </div>
         </Card>

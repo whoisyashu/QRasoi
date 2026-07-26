@@ -321,6 +321,19 @@ export const getOrderStatus = async (req: Request, res: Response): Promise<void>
           };
         });
 
+        let restName = 'DineVerse Bistro';
+        let restAddr = 'Flat No.13A, Bankey Bihari Enclave';
+        let restPhone = '+91 9368967944';
+
+        if (order.restaurant_id) {
+          const { data: rest } = await db.from('restaurants').select('*').eq('id', order.restaurant_id).maybeSingle();
+          if (rest) {
+            if (rest.name && rest.name !== 'Your Restaurant Name') restName = rest.name;
+            if (rest.address) restAddr = rest.address;
+            if (rest.phone) restPhone = rest.phone;
+          }
+        }
+
         const resultObj = {
           id: order.id,
           customerName: order.customer_name || 'Customer',
@@ -333,6 +346,10 @@ export const getOrderStatus = async (req: Request, res: Response): Promise<void>
           isPaymentVerified: Boolean(order.is_payment_verified),
           createdAt: order.created_at || new Date().toISOString(),
           estimatedTimeMinutes: Number(order.estimated_time_minutes || 15),
+          restaurantId: order.restaurant_id || 'rest-1',
+          restaurantName: restName,
+          restaurantAddress: restAddr,
+          restaurantPhone: restPhone,
           items: itemsList,
         };
 

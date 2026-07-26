@@ -53,6 +53,8 @@ export interface Order {
   estimatedTimeMinutes: number;
   restaurantId: string;
   restaurantName: string;
+  restaurantAddress?: string;
+  restaurantPhone?: string;
 }
 
 export interface RestaurantProfile {
