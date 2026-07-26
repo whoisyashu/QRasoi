@@ -168,7 +168,6 @@ export const OrderStatusPage: React.FC = () => {
           <h1 style="font-size: 22px; font-weight: 900; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-family: sans-serif;">${restName}</h1>
           <p style="font-size: 11px; color: #333333; margin: 5px 0 0 0; font-weight: 600;">${restAddr}</p>
           <p style="font-size: 11px; color: #333333; margin: 2px 0 0 0; font-weight: 600;">Contact: ${restPhone}</p>
-          <p style="font-size: 10px; color: #666666; margin: 4px 0 0 0;">FSSAI Lic No: 11521001000189</p>
         </div>
 
         <!-- Meta info -->
@@ -227,10 +226,8 @@ export const OrderStatusPage: React.FC = () => {
           <p style="font-weight: 700; color: #000000; margin: 0; font-family: sans-serif;">*** THANK YOU FOR DINING WITH US ***</p>
           <p style="margin: 4px 0 0 0; color: #444444;">Please Visit Again Soon!</p>
 
-          <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #aaaaaa; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 10.5px; color: #666666; font-family: sans-serif;">
-            <span>Powered by</span>
-            <strong style="color: #ea580c; font-size: 13px; font-weight: 900;">QRasoi POS</strong>
-            <span>• www.qrasoi.app</span>
+          <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #aaaaaa; text-align: center; font-size: 11px; color: #475569; font-family: sans-serif;">
+            <span>Powered by <strong style="color: #ea580c; font-weight: 900;">QRasoi POS</strong> • www.qrasoi.app</span>
           </div>
         </div>
       </div>
