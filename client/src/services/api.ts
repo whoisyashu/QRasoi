@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Use relative /api by default so Vite dev server proxy seamlessly forwards to the backend on any port (5000 / 8080)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// Support both VITE_API_URL and VITE_API_BASE_URL from environment variables
+const rawUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
