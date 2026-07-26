@@ -330,7 +330,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   initRealtimeSubscription: () => {
     const socket = socketClient.connect();
 
-    // Listen for real-time order creation (Owner Dashboard & Kitchen)
+    // Rule 1: Order Created By Customer -> Notification sent to Owner
     socket.on('order:created', (newOrder: any) => {
       console.log('🔔 [Realtime Socket] order:created event received:', newOrder);
       if (newOrder && newOrder.id) {
@@ -338,29 +338,47 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           const exists = state.orders.some((o) => o.id === newOrder.id);
           if (exists) return state;
 
-          triggerNotification(
-            '🔔 New Order Received!',
-            `Order ${newOrder.id} placed at ${newOrder.tableNumber} by ${newOrder.customerName}`
-          );
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/owner') || currentPath.includes('/dashboard') || currentPath === '/') {
+            triggerNotification(
+              '🔔 New Order Received!',
+              `Order ${newOrder.id} placed at ${newOrder.tableNumber} by ${newOrder.customerName}`
+            );
+          }
 
           return { orders: [newOrder, ...state.orders] };
         });
       }
     });
 
-    // Listen for payment verification (Kitchen KDS & Customer Order Page)
+    // Rule 2: Order Payment Verified -> Notification sent to Customer & Chef
     socket.on('order:payment_verified', (payload: any) => {
       console.log('💳 [Realtime Socket] order:payment_verified event received:', payload);
       if (payload && payload.id) {
         set((state) => ({
           orders: state.orders.map((o) =>
-            o.id === payload.id ? { ...o, isPaymentVerified: true, status: 'preparing' } : o
+            o.id === payload.id || o.id === `QR-${payload.id}`
+              ? { ...o, isPaymentVerified: true, status: 'preparing' }
+              : o
           ),
         }));
+
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/chef')) {
+          triggerNotification(
+            '👨‍🍳 New Kitchen Order Received!',
+            `Order ${payload.id} payment verified. Start preparing in kitchen!`
+          );
+        } else if (currentPath.includes('/order-status')) {
+          triggerNotification(
+            '💳 Payment Verified!',
+            `Your payment for order ${payload.id} is verified. Food preparation has started!`
+          );
+        }
       }
     });
 
-    // Listen for item status changes (Kitchen KDS & Customer Order Page)
+    // Rule 3: Order Item Marked as Ready -> Notification sent to Customer
     socket.on('order_item:status_updated', (payload: any) => {
       console.log('🍳 [Realtime Socket] order_item:status_updated event received:', payload);
       if (payload && (payload.orderId || payload.itemId)) {
@@ -390,18 +408,41 @@ export const useOrderStore = create<OrderState>((set, get) => ({
             };
           }),
         }));
+
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/order-status') && payload.status === 'ready') {
+          triggerNotification(
+            '🍲 Item Ready on Counter!',
+            `An item in your order ${payload.orderId || ''} is cooked and ready on counter!`
+          );
+        }
       }
     });
 
-    // Listen for overall order status changes
+    // Rule 4: All Items Ready & Order Completed -> Notification sent to Customer & Owner
     socket.on('order:status_updated', (payload: any) => {
       console.log('📢 [Realtime Socket] order:status_updated event received:', payload);
       if (payload && payload.orderId) {
         set((state) => ({
           orders: state.orders.map((o) =>
-            o.id === payload.orderId ? { ...o, status: payload.status } : o
+            o.id === payload.orderId || o.id === `QR-${payload.orderId}`
+              ? { ...o, status: payload.status }
+              : o
           ),
         }));
+
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/order-status') && (payload.status === 'ready' || payload.status === 'completed')) {
+          triggerNotification(
+            '🎉 Order Ready for Pickup!',
+            `Your order ${payload.orderId} is completed and ready for pickup!`
+          );
+        } else if ((currentPath.includes('/owner') || currentPath.includes('/dashboard')) && (payload.status === 'ready' || payload.status === 'completed')) {
+          triggerNotification(
+            '✅ Order Completed!',
+            `Order ${payload.orderId} has been marked completed.`
+          );
+        }
       }
     });
 
