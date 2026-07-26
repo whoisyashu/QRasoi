@@ -1,0 +1,1 @@
+import type { RequestHandler } from 'express'; import { nanoid } from 'nanoid'; export const requestContext:RequestHandler=(req,res,next)=>{req.requestId=nanoid(12);res.setHeader('X-Request-Id',req.requestId);next();};

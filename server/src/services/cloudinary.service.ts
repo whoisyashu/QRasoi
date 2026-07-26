@@ -1,0 +1,3 @@
+import { v2 as cloudinary } from 'cloudinary'; import { env } from '../config/env.js'; import { AppError } from '../errors/AppError.js';
+cloudinary.config({cloud_name:env.CLOUDINARY_CLOUD_NAME,api_key:env.CLOUDINARY_API_KEY,api_secret:env.CLOUDINARY_API_SECRET,secure:true});
+export const cloudinaryService={signature(folder:string){if(!env.CLOUDINARY_CLOUD_NAME||!env.CLOUDINARY_API_KEY||!env.CLOUDINARY_API_SECRET)throw new AppError(503,'Image storage is not configured');const timestamp=Math.floor(Date.now()/1000);return {timestamp,folder,signature:cloudinary.utils.api_sign_request({timestamp,folder},env.CLOUDINARY_API_SECRET),apiKey:env.CLOUDINARY_API_KEY,cloudName:env.CLOUDINARY_CLOUD_NAME};}};

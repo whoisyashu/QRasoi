@@ -1,0 +1,17 @@
+{
+  "twoFactorEnabled": true,
+  "totpSecret": "5825014b7139784feda558e0dafd9b37:b3e70805a9e7d176c8cf71aad40e04fd521a2bdd3c25072f581ad2c0814c9137",
+  "backupCodes": [
+    "$2b$10$tViGqVu/k9AY8idHHIYU4.HArQS5QbFmZjaXWuHh25FeMUzHqLJfm",
+    "$2b$10$xrX5i9.Vtex.ovwJDuSQLeSbVWyHP9unRHwP5DyWUY0JhVk2UJXQe",
+    "$2b$10$iVitRJ.qFmRK8TSsCwnis.uzcFSCHbHHHPBoYuxiO61itN178zuhu",
+    "$2b$10$EgfYcC/yBKx9SQI4ANg7AuOzzFtOefk.Sv96DElsXmAV9UfqVhjnO",
+    "$2b$10$ejx8FISMTMNyBsGHiQQQQeooHRKkaac9yHYUMO7eVdptU15Mv37tW",
+    "$2b$10$nKEEtq462qE3lYyLMQMtkun/PyYh9V.n1NsJE3Fxh2iXXYIzzt.uq",
+    "$2b$10$1DEHKr3Gnx.FTElAbH/SkOHGdDN3ITPekiRAfk/On8PPaG8C626ey",
+    "$2b$10$Slc7FuxAGUuUFuojrKuL6e93D2MuzJiq2nVU5.s/SY5N8s2K.NbWK",
+    "$2b$10$UUMhZChttQiPHxrsJgsRpO0M6EF0FEhVXnVRLG.11QnUr26P4GZyq",
+    "$2b$10$SgxM37wXhyMhaUT/36Y3/eNqnylufLNCvpREAiAsOAzcec0HiUbaC"
+  ],
+  "updatedAt": "2026-07-25T16:46:26.397Z"
+}

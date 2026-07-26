@@ -1,0 +1,44 @@
+[
+  {
+    "id": "rest-bankey-az6vca",
+    "slug": "bankey-az6vca",
+    "status": "active",
+    "validUntil": "2026-08-24T18:00:54.421Z",
+    "updatedAt": "2026-07-25T18:00:54.422Z"
+  },
+  {
+    "id": "rest-dineverse-bistro-ld1grg",
+    "slug": "dineverse-bistro-ld1grg",
+    "status": "unverified",
+    "validUntil": null,
+    "updatedAt": "2026-07-25T18:09:43.897Z"
+  },
+  {
+    "id": "rest-dineverse-bistro-3rxoxf",
+    "slug": "dineverse-bistro-3rxoxf",
+    "status": "active",
+    "validUntil": "2026-08-25T02:16:33.339Z",
+    "updatedAt": "2026-07-26T02:16:33.340Z"
+  },
+  {
+    "id": "rest-dineverse-bistro-jmqcrq",
+    "slug": "dineverse-bistro-jmqcrq",
+    "status": "active",
+    "validUntil": "2026-08-25T02:58:20.865Z",
+    "updatedAt": "2026-07-26T02:58:20.865Z"
+  },
+  {
+    "id": "rest-xyz-dhaba-179wf5",
+    "slug": "xyz-dhaba-179wf5",
+    "status": "active",
+    "validUntil": "2026-08-25T06:59:18.281Z",
+    "updatedAt": "2026-07-26T06:59:18.281Z"
+  },
+  {
+    "id": "rest-bankey-50fkqi",
+    "slug": "bankey-50fkqi",
+    "status": "active",
+    "validUntil": "2026-08-25T07:33:45.058Z",
+    "updatedAt": "2026-07-26T07:33:45.060Z"
+  }
+]
