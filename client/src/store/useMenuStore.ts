@@ -81,6 +81,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
         set({ isSuspended: true, isLoading: false });
       } else {
         console.warn('Failed to fetch public menu from backend:', err);
+        // Retain existing or default menu items gracefully
         set({ isLoading: false });
       }
     }

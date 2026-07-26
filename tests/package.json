@@ -1,0 +1,27 @@
+{
+  "name": "qrasoi-performance-tests",
+  "version": "1.0.0",
+  "description": "Production-Grade k6 Performance & Load Testing Suite for QRasoi SaaS Platform",
+  "main": "main.js",
+  "scripts": {
+    "test": "k6 run main.js",
+    "test:low": "k6 run profiles/low_traffic.js",
+    "test:medium": "k6 run profiles/medium_traffic.js",
+    "test:peak": "k6 run profiles/peak_hours.js",
+    "test:burst": "k6 run profiles/login_burst.js",
+    "test:stress": "k6 run profiles/stress_test.js",
+    "test:soak": "k6 run profiles/soak_test.js",
+    "test:lunch": "k6 run profiles/lunch_rush.js",
+    "test:dinner": "k6 run profiles/dinner_rush.js",
+    "test:spike": "k6 run profiles/spike_recovery_test.js"
+  },
+  "keywords": [
+    "k6",
+    "performance-testing",
+    "load-testing",
+    "qrasoi",
+    "benchmarking"
+  ],
+  "author": "QRasoi Engineering Team",
+  "license": "MIT"
+}
