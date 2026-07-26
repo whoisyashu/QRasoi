@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { Category, MenuItem } from '../types';
+import { Category, MenuItem, RestaurantProfile } from '../types';
 import { MOCK_CATEGORIES, MOCK_MENU_ITEMS } from '../constants/mockData';
 import { apiClient } from '../services/api';
 
 interface MenuState {
   categories: Category[];
   items: MenuItem[];
+  publicRestaurant: RestaurantProfile | null;
   searchQuery: string;
   selectedCategory: string;
   isLoading: boolean;
@@ -23,6 +24,7 @@ interface MenuState {
 export const useMenuStore = create<MenuState>((set, get) => ({
   categories: MOCK_CATEGORIES,
   items: MOCK_MENU_ITEMS,
+  publicRestaurant: null,
   searchQuery: '',
   selectedCategory: 'cat-all',
   isLoading: false,
@@ -51,7 +53,12 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     try {
       const response = await apiClient.get(`/public/r/${slug}`);
       if (response.data) {
-        const { items: rawItems, categories: rawCats } = response.data;
+        const { items: rawItems, categories: rawCats, restaurant: restProfile } = response.data;
+
+        if (restProfile && restProfile.name && restProfile.name !== 'Your Restaurant Name') {
+          set({ publicRestaurant: restProfile });
+        }
+
         if (Array.isArray(rawItems) && rawItems.length > 0) {
           set({ items: rawItems, isLoading: false, isSuspended: false });
         } else {

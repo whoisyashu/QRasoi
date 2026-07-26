@@ -11,11 +11,38 @@ export const PublicMenuPage: React.FC = () => {
   const navigate = useNavigate();
   const { restaurantSlug } = useParams<{ restaurantSlug?: string; restaurantId?: string }>();
   const { restaurant } = useAuthStore();
-  const { categories, items, isSuspended, fetchMenuItems, fetchPublicMenu, searchQuery, setSearchQuery, selectedCategory, setSelectedCategory } =
+  const { categories, items, publicRestaurant, isSuspended, fetchMenuItems, fetchPublicMenu, searchQuery, setSearchQuery, selectedCategory, setSelectedCategory } =
     useMenuStore();
   const { items: cartItems, addItem, updateQuantity, getSubtotal, getTotalItems } = useCartStore();
 
   const [dietaryFilter, setDietaryFilter] = useState<'all' | 'veg' | 'non-veg'>('all');
+
+  const displayRestaurant = {
+    name:
+      publicRestaurant?.name && publicRestaurant.name !== 'Your Restaurant Name'
+        ? publicRestaurant.name
+        : restaurant.name && restaurant.name !== 'Your Restaurant Name'
+        ? restaurant.name
+        : 'DineVerse Bistro',
+    tagline: publicRestaurant?.tagline || restaurant.tagline || 'Digital Menu & QR Ordering',
+    address:
+      publicRestaurant?.address && publicRestaurant.address !== 'Update address in Settings'
+        ? publicRestaurant.address
+        : restaurant.address && restaurant.address !== 'Update address in Settings'
+        ? restaurant.address
+        : 'Flat No.13A, Bankey Bihari Enclave',
+    phone:
+      publicRestaurant?.phone && publicRestaurant.phone !== '+91 90000 00000'
+        ? publicRestaurant.phone
+        : restaurant.phone && restaurant.phone !== '+91 90000 00000'
+        ? restaurant.phone
+        : '+91 9368967944',
+    logo: publicRestaurant?.logo || restaurant.logo || '/logo.png',
+    coverImage:
+      publicRestaurant?.coverImage ||
+      restaurant.coverImage ||
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&auto=format&fit=crop&q=80',
+  };
 
   useEffect(() => {
     if (restaurantSlug) {
@@ -112,34 +139,34 @@ export const PublicMenuPage: React.FC = () => {
       <div className="relative bg-slate-900 text-white">
         <div className="absolute inset-0 opacity-25 overflow-hidden">
           <img
-            src={restaurant.coverImage}
-            alt={restaurant.name}
+            src={displayRestaurant.coverImage}
+            alt={displayRestaurant.name}
             className="w-full h-full object-cover"
           />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 py-8 sm:px-6 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
           <img
-            src={restaurant.logo}
-            alt={restaurant.name}
+            src={displayRestaurant.logo}
+            alt={displayRestaurant.name}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-orange-500 shadow-lg shrink-0"
           />
           <div className="space-y-1.5 flex-1">
             <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Accepting Orders • Table & Takeaway</span>
+              <span>Accepting Orders • Table & Dine-in</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-white">
-              {restaurant.name}
+              {displayRestaurant.name}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium">{restaurant.tagline}</p>
+            <p className="text-xs sm:text-sm text-slate-300 font-medium">{displayRestaurant.tagline}</p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-400 pt-1">
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-orange-400" />
-                {restaurant.address}
+                {displayRestaurant.address}
               </span>
               <span className="flex items-center gap-1">
                 <Phone className="w-3.5 h-3.5 text-orange-400" />
-                {restaurant.phone}
+                {displayRestaurant.phone}
               </span>
             </div>
           </div>

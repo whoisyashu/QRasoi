@@ -1,17 +1,17 @@
 import { Category, MenuItem, Order, RestaurantProfile } from '../types';
 
 export const MOCK_RESTAURANT: RestaurantProfile = {
-  id: 'rest-new-outlet',
-  name: 'Your Restaurant Name',
+  id: 'rest-dineverse-bistro-q4zpbu',
+  name: 'DineVerse Bistro',
   tagline: 'Digital Menu & QR Ordering',
-  address: 'Update address in Settings',
-  phone: '+91 90000 00000',
+  address: 'Flat No.13A, Bankey Bihari Enclave',
+  phone: '+91 9368967944',
   cuisine: 'Multi-Cuisine',
   openingHours: '10:00 AM - 11:00 PM',
-  logo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&auto=format&fit=crop&q=80',
+  logo: '/logo.png',
   coverImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&auto=format&fit=crop&q=80',
   orderTimeoutMinutes: 15,
-  qrCodeUrl: 'https://qrasoi.app/r/new-outlet',
+  qrCodeUrl: 'https://qrasoi.app/r/dineverse-bistro',
 };
 
 export const MOCK_CATEGORIES: Category[] = [
