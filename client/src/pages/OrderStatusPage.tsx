@@ -11,6 +11,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { triggerNotification, requestNotificationPermission } from '../utils/notificationSound';
 import { socketClient } from '../services/socket';
+import paidStampUrl from '../assets/paid_stamp.png';
+import cancelledStampUrl from '../assets/cancelled_stamp.png';
 
 export const OrderStatusPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -161,8 +163,20 @@ export const OrderStatusPage: React.FC = () => {
       hour12: true,
     });
 
+    const isCancelled = order.status === 'cancelled' || order.status === 'expired';
+    const stampSrc = isCancelled
+      ? cancelledStampUrl
+      : order.isPaymentVerified || order.status !== 'pending'
+      ? paidStampUrl
+      : null;
+
     invoiceContainer.innerHTML = `
-      <div style="background-color: #ffffff; color: #000000; font-family: 'Courier New', Courier, monospace; line-height: 1.35; padding: 10px;">
+      <div style="position: relative; background-color: #ffffff; color: #000000; font-family: 'Courier New', Courier, monospace; line-height: 1.35; padding: 10px; overflow: hidden;">
+        ${stampSrc ? `
+          <div style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg); z-index: 20; pointer-events: none; opacity: 0.82; width: 220px; text-align: center;">
+            <img src="${stampSrc}" alt="${isCancelled ? 'CANCELLED' : 'PAID'}" style="width: 100%; height: auto; display: block; max-width: 220px; margin: 0 auto;" />
+          </div>
+        ` : ''}
         <!-- Header -->
         <div style="text-align: center; border-bottom: 2px dashed #000000; padding-bottom: 14px; margin-bottom: 14px;">
           <h1 style="font-size: 22px; font-weight: 900; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-family: sans-serif;">${restName}</h1>
