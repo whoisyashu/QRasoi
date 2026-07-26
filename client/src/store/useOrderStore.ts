@@ -10,6 +10,7 @@ interface OrderState {
   orders: Order[];
   isLoading: boolean;
   fetchLiveOrders: () => Promise<void>;
+  fetchPublicOrder: (orderId: string) => Promise<Order | null>;
   createOrder: (data: {
     customerName: string;
     customerPhone: string;
@@ -95,6 +96,47 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     } else {
       set({ isLoading: false });
     }
+  },
+
+  fetchPublicOrder: async (orderId: string) => {
+    if (!orderId) return null;
+    const cleanId = orderId.trim();
+    const rawId = cleanId.startsWith('QR-') ? cleanId : `QR-${cleanId}`;
+
+    try {
+      const response = await apiClient.get(`/public/orders/${rawId}`);
+      if (response.data && response.data.id) {
+        const liveOrder: Order = {
+          id: response.data.id,
+          customerName: response.data.customerName || 'Customer',
+          customerPhone: response.data.customerPhone || '',
+          tableNumber: response.data.tableNumber || 'Table 1',
+          subtotal: Number(response.data.subtotal || 0),
+          tax: Number(response.data.tax || 0),
+          total: Number(response.data.total || response.data.subtotal || 0),
+          status: (response.data.status as OrderStatus) || 'pending',
+          isPaymentVerified: Boolean(response.data.isPaymentVerified),
+          createdAt: response.data.createdAt || new Date().toISOString(),
+          estimatedTimeMinutes: Number(response.data.estimatedTimeMinutes || 15),
+          restaurantId: response.data.restaurantId || MOCK_RESTAURANT.id,
+          restaurantName: response.data.restaurantName || MOCK_RESTAURANT.name,
+          items: response.data.items || [],
+        };
+
+        set((state) => {
+          const exists = state.orders.some((o) => o.id.toUpperCase() === liveOrder.id.toUpperCase());
+          const updated = exists
+            ? state.orders.map((o) => (o.id.toUpperCase() === liveOrder.id.toUpperCase() ? liveOrder : o))
+            : [liveOrder, ...state.orders];
+          return { orders: updated };
+        });
+
+        return liveOrder;
+      }
+    } catch (err) {
+      console.warn('Public order fetch error:', err);
+    }
+    return null;
   },
 
   createOrder: async (data) => {
@@ -185,72 +227,71 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   updateOrderItemStatus: async (orderId, itemId, status) => {
     set((state) => ({
-      orders: state.orders.map((order) => {
-        if (order.id !== orderId) return order;
-
-        const updatedItems = order.items.map((item) => {
-          if (item.id === itemId || item.menuItem.id === itemId) {
-            return { ...item, status };
-          }
-          return item;
-        });
-
-        const allItemsReady = updatedItems.length > 0 && updatedItems.every((item) => item.status === 'ready');
-        const newOrderStatus = allItemsReady ? ('ready' as OrderStatus) : order.status;
-
+      orders: state.orders.map((o) => {
+        if (o.id !== orderId) return o;
+        const updatedItems = o.items.map((i) => (i.id === itemId ? { ...i, status } : i));
+        const allReady = updatedItems.every((i) => i.status === 'ready');
         return {
-          ...order,
+          ...o,
           items: updatedItems,
-          status: newOrderStatus,
+          status: allReady ? ('ready' as OrderStatus) : o.status,
         };
       }),
     }));
 
     try {
-      await apiClient.patch(`/chef/order-items/${itemId}/status`, { orderId, status });
+      await apiClient.patch(`/chef/orders/${orderId}/items/${itemId}/status`, { status });
     } catch (err) {
-      console.warn('API order item status update error:', err);
+      console.warn('API item status update error:', err);
     }
   },
 
   cancelOrder: async (orderId) => {
     set((state) => ({
-      orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, status: 'cancelled' as OrderStatus } : o
-      ),
+      orders: state.orders.filter((o) => o.id !== orderId),
     }));
 
-    if (isSupabaseConfigured) {
-      await orderService.updateOrderStatus(orderId, 'cancelled');
+    try {
+      await apiClient.patch(`/owner/orders/${orderId}/cancel`);
+    } catch (err) {
+      console.warn('API order cancellation error:', err);
     }
   },
 
   getOrderById: (orderId) => {
-    const cleanId = orderId.startsWith('QR-') ? orderId : `QR-${orderId}`;
-    return get().orders.find((o) => o.id === cleanId || o.id === orderId);
+    const rawId = orderId ? (orderId.startsWith('QR-') ? orderId : `QR-${orderId}`) : '';
+    return get().orders.find((o) => o.id.toUpperCase() === rawId.toUpperCase() || o.id.toUpperCase() === orderId.toUpperCase());
   },
 
   checkExpiredOrders: () => {
-    const timeoutMs = MOCK_RESTAURANT.orderTimeoutMinutes * 60 * 1000;
     const now = Date.now();
-    set((state) => ({
-      orders: state.orders.map((order) => {
-        if (
-          order.status === 'pending' &&
-          !order.isPaymentVerified &&
-          now - new Date(order.createdAt).getTime() > timeoutMs
-        ) {
-          return { ...order, status: 'expired' as OrderStatus };
+    const { orders } = get();
+    orders.forEach((o) => {
+      if (o.status === 'pending' && !o.isPaymentVerified) {
+        const createdTime = new Date(o.createdAt).getTime();
+        const timeoutMs = (o.estimatedTimeMinutes || 15) * 60 * 1000;
+        if (now - createdTime > timeoutMs) {
+          get().cancelOrder(o.id);
         }
-        return order;
-      }),
-    }));
+      }
+    });
   },
 
   initRealtimeSubscription: () => {
-    if (!isSupabaseConfigured) return;
-    orderService.subscribeToLiveOrders(() => {
-      get().fetchLiveOrders();
-    });
+    if (isSupabaseConfigured) {
+      orderService.subscribeToLiveOrders((payload: any) => {
+        if (payload.eventType === 'INSERT') {
+          const newOrder = payload.new;
+          set((state) => ({
+            orders: [newOrder, ...state.orders.filter((o) => o.id !== newOrder.id)],
+          }));
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedOrder = payload.new;
+          set((state) => ({
+            orders: state.orders.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o)),
+          }));
+        }
+      });
+    }
   },
 }));

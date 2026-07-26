@@ -207,6 +207,38 @@ export const placeCustomerOrder = async (req: Request, res: Response): Promise<v
       }
     }
 
+    // Always save order in inMemoryPublicOrders for instant public status lookups
+    const formattedOrderObj = {
+      id: orderId,
+      customerName: customerName || 'Customer',
+      customerPhone: customerPhone || '',
+      tableNumber: tableNumber || 'Table 1',
+      subtotal: Number(subtotal || 0),
+      tax: 0,
+      total: Number(subtotal || 0),
+      status: 'pending',
+      isPaymentVerified: false,
+      createdAt: new Date().toISOString(),
+      estimatedTimeMinutes: 15,
+      items: (items || []).map((item: any) => ({
+        id: `oi-${nanoid(8)}`,
+        menuItem: {
+          id: item.menuItem?.id || item.id || 'item-1',
+          name: item.menuItem?.name || item.name || 'Dish',
+          description: '',
+          price: Number(item.menuItem?.price || item.price || 0),
+          category: 'Main Course',
+          dietary: 'veg',
+          isAvailable: true,
+          preparationTimeMinutes: 15,
+        },
+        quantity: Number(item.quantity || 1),
+        notes: item.notes || '',
+        status: 'preparing',
+      })),
+    };
+    inMemoryPublicOrders.set(orderId, formattedOrderObj);
+
     res.status(201).json({
       message: 'Order placed successfully',
       orderId,
@@ -220,21 +252,35 @@ export const placeCustomerOrder = async (req: Request, res: Response): Promise<v
   }
 };
 
+// Shared in-memory store for active customer orders
+export const inMemoryPublicOrders = new Map<string, any>();
+
 /**
  * GET /api/public/orders/:orderId
- * Customer tracks live order status directly from Supabase DB
+ * Customer tracks live order status directly from Supabase DB or in-memory fallback
  */
 export const getOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
-    const rawOrderId = req.params.orderId as string;
-    const orderId = rawOrderId.startsWith('QR-') ? rawOrderId : `QR-${rawOrderId}`;
+    const rawOrderId = (req.params.orderId as string).trim();
+    const formattedId = rawOrderId.startsWith('QR-') ? rawOrderId : `QR-${rawOrderId}`;
 
     if (db) {
-      const { data: order, error } = await db
+      // 1. Query DB using formatted ID (e.g. QR-1082)
+      let { data: order, error } = await db
         .from('orders')
         .select('*, order_items(*)')
-        .eq('id', orderId)
+        .eq('id', formattedId)
         .maybeSingle();
+
+      // 2. Query DB using raw ID if not found
+      if (!order) {
+        const { data: rawOrder } = await db
+          .from('orders')
+          .select('*, order_items(*)')
+          .eq('id', rawOrderId)
+          .maybeSingle();
+        order = rawOrder;
+      }
 
       if (!error && order) {
         res.json({
@@ -273,6 +319,19 @@ export const getOrderStatus = async (req: Request, res: Response): Promise<void>
         });
         return;
       }
+    }
+
+    // Fallback: Check in-memory store
+    const memOrder =
+      inMemoryPublicOrders.get(formattedId) ||
+      inMemoryPublicOrders.get(rawOrderId) ||
+      Array.from(inMemoryPublicOrders.values()).find(
+        (o) => o.id.toLowerCase() === formattedId.toLowerCase() || o.id.toLowerCase() === rawOrderId.toLowerCase()
+      );
+
+    if (memOrder) {
+      res.json(memOrder);
+      return;
     }
 
     res.status(404).json({ error: 'Order not found.' });
