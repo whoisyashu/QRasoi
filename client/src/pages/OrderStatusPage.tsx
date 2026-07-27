@@ -173,30 +173,37 @@ export const OrderStatusPage: React.FC = () => {
       : null;
 
     invoiceContainer.innerHTML = `
-      <div style="position: relative; background-color: #ffffff; color: #0F172A; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.45; padding: 32px; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden;">
+      <div style="position: relative; background-color: #ffffff; color: #0F172A; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.45; padding: 28px 32px 32px 32px; border-radius: 16px; border: 1px solid #E2E8F0; border-top: 6px solid #EA580C; overflow: hidden;">
         ${stampSrc ? `
           <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg); z-index: 30; pointer-events: none; opacity: 0.85; width: 190px; text-align: center;">
             <img src="${stampSrc}" alt="${isCancelled ? 'CANCELLED' : 'PAID'}" style="width: 100%; height: auto; display: block; max-width: 190px; margin: 0 auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.08));" />
           </div>
         ` : ''}
 
-        <!-- Top Accent Bar -->
-        <div style="height: 6px; background: linear-gradient(90deg, #EA580C 0%, #F97316 50%, #F59E0B 100%); margin: -32px -32px 24px -32px;"></div>
-
         <!-- Header Card (Table layout for 100% html2canvas stability) -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 1px solid #E2E8F0; padding-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 1px solid #E2E8F0; padding-bottom: 18px;">
           <tr>
             <td style="vertical-align: top; text-align: left; padding-bottom: 16px;">
-              <span style="background: #FFF7ED; color: #EA580C; font-size: 9.5px; font-weight: 800; padding: 5px 12px; border-radius: 8px; border: 1px solid #FFEDD5; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; vertical-align: middle; line-height: 1;">TAX INVOICE</span>
-              <h1 style="font-size: 19px; font-weight: 900; color: #0F172A; margin: 8px 0 3px 0; letter-spacing: -0.3px;">${restName}</h1>
+              <table style="display: inline-table; border-collapse: collapse; background: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 8px; margin-bottom: 8px;">
+                <tr>
+                  <td style="padding: 5px 14px; color: #EA580C; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; text-align: center; vertical-align: middle; line-height: 1.2;">
+                    TAX INVOICE
+                  </td>
+                </tr>
+              </table>
+              <h1 style="font-size: 20px; font-weight: 900; color: #0F172A; margin: 6px 0 3px 0; letter-spacing: -0.3px;">${restName}</h1>
               <p style="font-size: 11px; color: #64748B; margin: 0; font-weight: 500;">${restAddr}</p>
               <p style="font-size: 11px; color: #64748B; margin: 2px 0 0 0; font-weight: 500;">Ph: ${restPhone}</p>
             </td>
             <td style="vertical-align: top; text-align: right; padding-bottom: 16px;">
-              <div style="background: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 12px; padding: 10px 16px 12px 16px; display: inline-block; text-align: center; line-height: 1.2;">
-                <span style="font-size: 9px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; line-height: 1;">ORDER REF</span>
-                <span style="font-size: 15px; font-weight: 900; color: #EA580C; font-family: monospace; display: block; line-height: 1.2;">${order.id}</span>
-              </div>
+              <table style="display: inline-table; border-collapse: collapse; background: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 12px;">
+                <tr>
+                  <td style="padding: 10px 18px; text-align: center; vertical-align: middle;">
+                    <div style="font-size: 9.5px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.2; margin-bottom: 4px;">ORDER REF</div>
+                    <div style="font-size: 16px; font-weight: 900; color: #EA580C; font-family: monospace; line-height: 1.2; letter-spacing: 0.5px;">${order.id}</div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
         </table>
@@ -269,13 +276,17 @@ export const OrderStatusPage: React.FC = () => {
         </table>
 
         <!-- Footer Signature Banner -->
-        <div style="text-align: center; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+        <div style="text-align: center; border-top: 1px solid #E2E8F0; padding-top: 16px;">
           <p style="font-weight: 700; color: #0F172A; margin: 0; font-size: 11.5px;">Thank you for dining with us! ✨</p>
-          <p style="margin: 2px 0 10px 0; color: #64748B; font-size: 10.5px;">We look forward to serving you again.</p>
+          <p style="margin: 2px 0 12px 0; color: #64748B; font-size: 10.5px;">We look forward to serving you again.</p>
 
-          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 20px; padding: 8px 20px; display: inline-block; font-size: 10.5px; color: #475569; line-height: 1.2; vertical-align: middle;">
-            <span style="display: inline-block; vertical-align: middle; line-height: 1.2;">Powered by <strong style="color: #EA580C; font-weight: 900;">QRasoi Digital Menus</strong> • www.qrasoi.netlify.app</span>
-          </div>
+          <table style="display: inline-table; border-collapse: collapse; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 20px;">
+            <tr>
+              <td style="padding: 8px 22px; text-align: center; vertical-align: middle; font-size: 10.5px; color: #475569; line-height: 1.3;">
+                Powered by <strong style="color: #EA580C; font-weight: 900;">QRasoi Digital Menus</strong> • www.qrasoi.netlify.app
+              </td>
+            </tr>
+          </table>
         </div>
       </div>
     `;
