@@ -181,21 +181,21 @@ export const OrderStatusPage: React.FC = () => {
         ` : ''}
 
         <!-- Top Accent Bar -->
-        <div style="height: 5px; background: linear-gradient(90deg, #EA580C 0%, #F97316 50%, #F59E0B 100%); border-radius: 4px 4px 0 0; margin: -32px -32px 24px -32px;"></div>
+        <div style="height: 6px; background: linear-gradient(90deg, #EA580C 0%, #F97316 50%, #F59E0B 100%); margin: -32px -32px 24px -32px;"></div>
 
         <!-- Header Card (Table layout for 100% html2canvas stability) -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 1px solid #E2E8F0; padding-bottom: 16px;">
           <tr>
             <td style="vertical-align: top; text-align: left; padding-bottom: 16px;">
-              <span style="background: #FFF7ED; color: #EA580C; font-size: 9.5px; font-weight: 800; padding: 3px 9px; border-radius: 10px; border: 1px solid #FFEDD5; text-transform: uppercase; letter-spacing: 0.5px;">TAX INVOICE</span>
-              <h1 style="font-size: 19px; font-weight: 900; color: #0F172A; margin: 6px 0 3px 0; letter-spacing: -0.3px;">${restName}</h1>
+              <span style="background: #FFF7ED; color: #EA580C; font-size: 9.5px; font-weight: 800; padding: 5px 12px; border-radius: 8px; border: 1px solid #FFEDD5; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; vertical-align: middle; line-height: 1;">TAX INVOICE</span>
+              <h1 style="font-size: 19px; font-weight: 900; color: #0F172A; margin: 8px 0 3px 0; letter-spacing: -0.3px;">${restName}</h1>
               <p style="font-size: 11px; color: #64748B; margin: 0; font-weight: 500;">${restAddr}</p>
               <p style="font-size: 11px; color: #64748B; margin: 2px 0 0 0; font-weight: 500;">Ph: ${restPhone}</p>
             </td>
             <td style="vertical-align: top; text-align: right; padding-bottom: 16px;">
-              <div style="background: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 12px; padding: 8px 14px; display: inline-block; text-align: right;">
-                <span style="font-size: 9.5px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; display: block;">ORDER REF</span>
-                <span style="font-size: 15px; font-weight: 900; color: #EA580C; font-family: monospace;">${order.id}</span>
+              <div style="background: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 12px; padding: 10px 16px 12px 16px; display: inline-block; text-align: center; line-height: 1.2;">
+                <span style="font-size: 9px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; line-height: 1;">ORDER REF</span>
+                <span style="font-size: 15px; font-weight: 900; color: #EA580C; font-family: monospace; display: block; line-height: 1.2;">${order.id}</span>
               </div>
             </td>
           </tr>
@@ -273,8 +273,8 @@ export const OrderStatusPage: React.FC = () => {
           <p style="font-weight: 700; color: #0F172A; margin: 0; font-size: 11.5px;">Thank you for dining with us! ✨</p>
           <p style="margin: 2px 0 10px 0; color: #64748B; font-size: 10.5px;">We look forward to serving you again.</p>
 
-          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px; padding: 5px 14px; display: inline-block; font-size: 10px; color: #475569;">
-            <span>Powered by <strong style="color: #EA580C; font-weight: 900;">QRasoi Digital Menus</strong> • www.qrasoi.netlify.app</span>
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 20px; padding: 8px 20px; display: inline-block; font-size: 10.5px; color: #475569; line-height: 1.2; vertical-align: middle;">
+            <span style="display: inline-block; vertical-align: middle; line-height: 1.2;">Powered by <strong style="color: #EA580C; font-weight: 900;">QRasoi Digital Menus</strong> • www.qrasoi.netlify.app</span>
           </div>
         </div>
       </div>
