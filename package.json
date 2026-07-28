@@ -2,15 +2,21 @@
   "name": "qrasoi-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "QRasoi SaaS Monorepo Orchestrator (Client & Server)",
+  "description": "QRasoi SaaS Monorepo Orchestrator (Client, Server & Mobile)",
+  "workspaces": [
+    "client",
+    "server",
+    "mobile"
+  ],
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names \"CLIENT,SERVER\" -c \"bgOrange.bold,bgBlue.bold\" \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
     "dev:client": "npm --prefix client run dev",
     "dev:server": "npm --prefix server run dev",
+    "dev:mobile": "npm --prefix mobile run start",
     "build": "npm --prefix client run build && npm --prefix server run build",
     "build:client": "npm --prefix client run build",
     "build:server": "npm --prefix server run build",
-    "install:all": "npm --prefix client install && npm --prefix server install"
+    "install:all": "npm --prefix client install && npm --prefix server install && npm --prefix mobile install"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
