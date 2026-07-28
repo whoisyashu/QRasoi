@@ -15,8 +15,8 @@ export const MobileAppDownloadSection: React.FC = () => {
   }, []);
 
   const handleAndroidDownload = () => {
-    // Direct download link for 19MB standalone Android APK
-    const directApkUrl = 'https://expo.dev/artifacts/eas/3xFZFcO_MBgXxgjci7mAps-R2NE7q7hjzgwqxXpvXEQ.apk';
+    // Direct download link for build 6d2679bc (18.98MB standalone Android APK with fixed login & rich UI styling)
+    const directApkUrl = 'https://expo.dev/artifacts/eas/q0NkEqgZT6Lt_5RklRimUKCvl7dco9kzl-AeFBStARQ.apk';
     const link = document.createElement('a');
     link.href = directApkUrl;
     link.download = 'QRasoi.apk';
