@@ -22,7 +22,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email, password) => {
     const res = await apiClient.post('/auth/login', { email, password });
-    const { token, user } = res.data.data;
+    const payload = res.data?.data || res.data;
+    const token = payload?.token;
+    const user = payload?.user;
+    if (!token || !user) {
+      throw new Error(res.data?.error || 'Invalid email or password');
+    }
     await storageService.setToken(token);
     await storageService.setUserSession(user);
     set({ user, token, isAuthenticated: true });
@@ -30,7 +35,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   chefLogin: async (pin) => {
     const res = await apiClient.post('/auth/chef-login', { pin });
-    const { token, user } = res.data.data;
+    const payload = res.data?.data || res.data;
+    const token = payload?.token;
+    const user = payload?.user;
+    if (!token || !user) {
+      throw new Error(res.data?.error || 'Invalid Kitchen Security PIN');
+    }
     await storageService.setToken(token);
     await storageService.setUserSession(user);
     set({ user, token, isAuthenticated: true });

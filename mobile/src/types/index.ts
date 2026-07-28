@@ -1,4 +1,4 @@
-export type UserRole = 'SUPER_ADMIN' | 'OWNER' | 'CHEF';
+export type UserRole = 'SUPER_ADMIN' | 'OWNER' | 'CHEF' | 'owner' | 'chef' | 'admin';
 
 export interface User {
   id: string;
@@ -6,7 +6,7 @@ export interface User {
   name: string;
   role: UserRole;
   restaurantId?: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface Restaurant {
@@ -16,20 +16,21 @@ export interface Restaurant {
   address?: string;
   phone?: string;
   logoUrl?: string;
-  isApproved: boolean;
-  createdAt: string;
+  isApproved?: boolean;
+  createdAt?: string;
 }
 
 export interface MenuItem {
   id: string;
-  restaurantId: string;
-  categoryId: string;
+  restaurantId?: string;
+  categoryId?: string;
   name: string;
   description?: string;
   price: number;
   imageUrl?: string;
-  isVeg: boolean;
-  isAvailable: boolean;
+  isVeg?: boolean;
+  is_veg?: boolean;
+  isAvailable?: boolean;
   spiceLevel?: 'MILD' | 'MEDIUM' | 'SPICY';
 }
 
@@ -44,28 +45,39 @@ export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'can
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface OrderItem {
-  id: string;
-  orderId: string;
-  menuItemId: string;
+  id?: string;
+  orderId?: string;
+  menuItemId?: string;
   quantity: number;
   notes?: string;
+  price?: number;
+  name?: string;
+  item_name?: string;
+  is_ready?: boolean;
+  isReady?: boolean;
   status?: 'pending' | 'preparing' | 'ready';
   menuItem?: MenuItem;
 }
 
 export interface Order {
   id: string;
-  restaurantId: string;
-  tableNumber: string;
-  customerName: string;
+  restaurantId?: string;
+  order_ref?: string;
+  orderRef?: string;
+  tableNumber?: string;
+  table_number?: string;
+  customerName?: string;
   customerPhone?: string;
   status: OrderStatus;
-  paymentStatus: PaymentStatus;
-  paymentMethod: 'CASH' | 'ONLINE';
-  subtotal: number;
-  total: number;
-  isPaymentVerified: boolean;
-  createdAt: string;
+  paymentStatus?: PaymentStatus;
+  payment_status?: PaymentStatus;
+  paymentMethod?: 'CASH' | 'ONLINE';
+  subtotal?: number;
+  total?: number;
+  total_amount?: number;
+  notes?: string;
+  isPaymentVerified?: boolean;
+  createdAt?: string;
   items: OrderItem[];
 }
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { MenuItem } from '../types';
 
 export interface CartItem {
+  id?: string;
   menuItem: MenuItem;
   quantity: number;
   notes?: string;
@@ -25,27 +26,29 @@ export const useCartStore = create<CartState>((set, get) => ({
   setTableNumber: (tableNumber) => set({ tableNumber }),
 
   addItem: (menuItem, notes) => {
-    const existing = get().items.find((i) => i.menuItem.id === menuItem.id);
+    const existing = get().items.find((i) => i.menuItem.id === menuItem.id || i.id === menuItem.id);
     if (existing) {
       set({
         items: get().items.map((i) =>
-          i.menuItem.id === menuItem.id ? { ...i, quantity: i.quantity + 1, notes: notes || i.notes } : i
+          (i.menuItem.id === menuItem.id || i.id === menuItem.id)
+            ? { ...i, quantity: i.quantity + 1, notes: notes || i.notes }
+            : i
         )
       });
     } else {
-      set({ items: [...get().items, { menuItem, quantity: 1, notes }] });
+      set({ items: [...get().items, { id: menuItem.id, menuItem, quantity: 1, notes }] });
     }
   },
 
   removeItem: (itemId) => {
-    set({ items: get().items.filter((i) => i.menuItem.id !== itemId) });
+    set({ items: get().items.filter((i) => i.menuItem.id !== itemId && i.id !== itemId) });
   },
 
   updateQuantity: (itemId, delta) => {
     set({
       items: get().items
         .map((i) => {
-          if (i.menuItem.id === itemId) {
+          if (i.menuItem.id === itemId || i.id === itemId) {
             const newQty = i.quantity + delta;
             return newQty > 0 ? { ...i, quantity: newQty } : null;
           }
@@ -58,6 +61,6 @@ export const useCartStore = create<CartState>((set, get) => ({
   clearCart: () => set({ items: [] }),
 
   getTotal: () => {
-    return get().items.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
+    return get().items.reduce((sum, item) => sum + (item.menuItem?.price || 0) * item.quantity, 0);
   }
 }));

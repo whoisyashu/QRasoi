@@ -1,144 +1,277 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { apiClient } from '../../../src/services/api.service';
-import { MenuItem, Category } from '../../../src/types';
 import { useCartStore } from '../../../src/store/useCartStore';
 
 export default function CustomerMenuScreen() {
-  const { slug } = useLocalSearchParams();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { items, addItem, removeItem, getTotal } = useCartStore();
 
-  const { items, addItem, removeItem, updateQuantity, getTotal, tableNumber } = useCartStore();
+  const [categories] = useState(['All Items', 'Starters', 'Main Course', 'Breads', 'Beverages', 'Desserts']);
+  const [activeCategory, setActiveCategory] = useState('All Items');
 
-  useEffect(() => {
-    fetchMenuData();
-  }, [slug]);
+  const sampleMenu = [
+    { id: '1', name: 'Paneer Butter Masala', category: 'Main Course', price: 240, isVeg: true, description: 'Rich cottage cheese in creamy tomato gravy.' },
+    { id: '2', name: 'Garlic Naan', category: 'Breads', price: 60, isVeg: true, description: 'Freshly baked tandoori naan brushed with garlic butter.' },
+    { id: '3', name: 'Dal Makhani', category: 'Main Course', price: 210, isVeg: true, description: 'Slow cooked black lentils with cream and spices.' },
+    { id: '4', name: 'Crispy Veg Spring Roll', category: 'Starters', price: 180, isVeg: true, description: 'Golden fried rolls with spicy vegetable filling.' },
+    { id: '5', name: 'Masala Chai', category: 'Beverages', price: 30, isVeg: true, description: 'Authentic Indian spiced hot tea.' },
+  ];
 
-  const fetchMenuData = async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get(`/public/menu/${slug || 'dineverse'}`);
-      setCategories(res.data.data.categories || []);
-      setMenuItems(res.data.data.menuItems || []);
-    } catch (err) {
-      console.log('Failed to fetch public menu:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredItems = menuItems.filter((item) => {
-    const matchesCategory = selectedCategory === 'ALL' || item.categoryId === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredMenu = activeCategory === 'All Items'
+    ? sampleMenu
+    : sampleMenu.filter(item => item.category === activeCategory);
 
   return (
-    <View className="flex-1 bg-slate-900 pt-12">
-      {/* Header */}
-      <View className="px-5 pb-3 border-b border-slate-800 flex-row justify-between items-center">
-        <View>
-          <Text className="text-brand-500 font-bold text-xs uppercase tracking-wider">TAX INVOICE MENU</Text>
-          <Text className="text-white text-2xl font-black">DineVerse Bistro</Text>
-          <Text className="text-slate-400 text-xs mt-0.5">{tableNumber} • Contactless Ordering</Text>
-        </View>
-        <View className="bg-brand-600/20 border border-brand-500/30 px-3 py-1.5 rounded-full">
-          <Text className="text-brand-500 font-bold text-xs">Live Menu</Text>
-        </View>
+    <SafeAreaView style={styles.container}>
+      {/* Header Banner */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>QRasoi Digital Menu 🍽️</Text>
+        <Text style={styles.headerSubtitle}>Outlet: {slug || 'Sample Restaurant'}</Text>
       </View>
 
-      {/* Search Input */}
-      <View className="px-5 my-3">
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search dishes..."
-          placeholderTextColor="#64748B"
-          className="bg-slate-800 text-white px-4 py-3 rounded-xl border border-slate-700 font-medium"
-        />
-      </View>
-
-      {/* Categories Horizontal Scroll */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 mb-3 flex-grow-0">
-        <TouchableOpacity
-          onPress={() => setSelectedCategory('ALL')}
-          className={`px-4 py-2 rounded-xl mr-2 ${selectedCategory === 'ALL' ? 'bg-brand-600' : 'bg-slate-800 border border-slate-700'}`}
-        >
-          <Text className={`font-bold text-xs ${selectedCategory === 'ALL' ? 'text-white' : 'text-slate-300'}`}>All Items</Text>
-        </TouchableOpacity>
+      {/* Category Horizontal Filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={styles.catContent}>
         {categories.map((cat) => (
           <TouchableOpacity
-            key={cat.id}
-            onPress={() => setSelectedCategory(cat.id)}
-            className={`px-4 py-2 rounded-xl mr-2 ${selectedCategory === cat.id ? 'bg-brand-600' : 'bg-slate-800 border border-slate-700'}`}
+            key={cat}
+            onPress={() => setActiveCategory(cat)}
+            style={[styles.catPill, activeCategory === cat && styles.catPillActive]}
           >
-            <Text className={`font-bold text-xs ${selectedCategory === cat.id ? 'text-white' : 'text-slate-300'}`}>{cat.name}</Text>
+            <Text style={[styles.catText, activeCategory === cat && styles.catTextActive]}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Dish Items Grid */}
-      {loading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#EA580C" />
-        </View>
-      ) : (
-        <ScrollView className="flex-1 px-5">
-          {filteredItems.map((item) => {
-            const cartItem = items.find((i) => i.menuItem.id === item.id);
-            return (
-              <View key={item.id} className="bg-slate-800 border border-slate-700/80 p-4 rounded-2xl mb-4 flex-row justify-between items-center">
-                <View className="flex-1 pr-3">
-                  <View className="flex-row items-center mb-1">
-                    <View className={`w-3 h-3 rounded-full mr-2 ${item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                    <Text className="text-white font-bold text-base">{item.name}</Text>
-                  </View>
-                  <Text className="text-slate-400 text-xs mb-2">{item.description || 'Delicious freshly prepared dish'}</Text>
-                  <Text className="text-brand-500 font-black text-base">₹{item.price.toFixed(2)}</Text>
-                </View>
+      {/* Menu Dishes List */}
+      <ScrollView style={styles.menuScroll} contentContainerStyle={styles.menuContent}>
+        {filteredMenu.map((dish) => {
+          const cartItem = items.find(i => i.id === dish.id);
+          const quantity = cartItem?.quantity || 0;
 
-                {cartItem ? (
-                  <View className="flex-row items-center bg-slate-900 border border-slate-700 rounded-xl px-2 py-1">
-                    <TouchableOpacity onPress={() => updateQuantity(item.id, -1)} className="px-2 py-1">
-                      <Text className="text-brand-500 font-bold text-lg">-</Text>
+          return (
+            <View key={dish.id} style={styles.dishCard}>
+              <View style={styles.dishInfo}>
+                <View style={styles.vegRow}>
+                  <Text style={styles.vegIcon}>🟢 VEG</Text>
+                  <Text style={styles.dishCategory}>{dish.category}</Text>
+                </View>
+                <Text style={styles.dishName}>{dish.name}</Text>
+                <Text style={styles.dishDesc}>{dish.description}</Text>
+                <Text style={styles.dishPrice}>₹{dish.price}</Text>
+              </View>
+
+              <View style={styles.actionCol}>
+                {quantity === 0 ? (
+                  <TouchableOpacity
+                    onPress={() => addItem({ id: dish.id, name: dish.name, price: dish.price, is_veg: dish.isVeg })}
+                    style={styles.addButton}
+                  >
+                    <Text style={styles.addButtonText}>ADD +</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.qtyBox}>
+                    <TouchableOpacity onPress={() => removeItem(dish.id)} style={styles.qtyBtn}>
+                      <Text style={styles.qtyBtnText}>-</Text>
                     </TouchableOpacity>
-                    <Text className="text-white font-bold px-2">{cartItem.quantity}</Text>
-                    <TouchableOpacity onPress={() => updateQuantity(item.id, 1)} className="px-2 py-1">
-                      <Text className="text-brand-500 font-bold text-lg">+</Text>
+                    <Text style={styles.qtyVal}>{quantity}</Text>
+                    <TouchableOpacity onPress={() => addItem({ id: dish.id, name: dish.name, price: dish.price, is_veg: dish.isVeg })} style={styles.qtyBtn}>
+                      <Text style={styles.qtyBtnText}>+</Text>
                     </TouchableOpacity>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => addItem(item)}
-                    className="bg-brand-600 px-4 py-2.5 rounded-xl"
-                  >
-                    <Text className="text-white font-bold text-xs uppercase">ADD +</Text>
-                  </TouchableOpacity>
                 )}
               </View>
-            );
-          })}
-        </ScrollView>
-      )}
+            </View>
+          );
+        })}
+      </ScrollView>
 
-      {/* Cart Floating Bar */}
-      {items.length > 0 ? (
-        <View className="bg-slate-800 border-t border-slate-700 p-4 flex-row justify-between items-center">
+      {/* Cart Drawer Sticky Bar */}
+      {items.length > 0 && (
+        <View style={styles.cartBar}>
           <View>
-            <Text className="text-slate-400 text-xs font-bold">{items.length} Items Selected</Text>
-            <Text className="text-white font-black text-xl">₹{getTotal().toFixed(2)}</Text>
+            <Text style={styles.cartCount}>{items.reduce((sum, i) => sum + i.quantity, 0)} Items</Text>
+            <Text style={styles.cartTotal}>Total: ₹{getTotal()}</Text>
           </View>
-
-          <TouchableOpacity className="bg-brand-600 px-6 py-3 rounded-xl shadow-lg">
-            <Text className="text-white font-black text-sm uppercase">Proceed to Checkout →</Text>
+          <TouchableOpacity style={styles.checkoutBtn}>
+            <Text style={styles.checkoutBtnText}>View Order →</Text>
           </TouchableOpacity>
         </View>
-      ) : null}
-    </View>
+      )}
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  header: {
+    padding: 20,
+    backgroundColor: '#1E293B',
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#EA580C',
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  catScroll: {
+    maxHeight: 56,
+    backgroundColor: '#0F172A',
+  },
+  catContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  catPill: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  catPillActive: {
+    backgroundColor: '#EA580C',
+    borderColor: '#EA580C',
+  },
+  catText: {
+    color: '#94A3B8',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  catTextActive: {
+    color: '#FFFFFF',
+  },
+  menuScroll: {
+    flex: 1,
+  },
+  menuContent: {
+    padding: 16,
+  },
+  dishCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  dishInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  vegRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  vegIcon: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  dishCategory: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  dishName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  dishDesc: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  dishPrice: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#EA580C',
+  },
+  actionCol: {
+    justifyContent: 'center',
+  },
+  addButton: {
+    backgroundColor: 'rgba(234, 88, 12, 0.2)',
+    borderWidth: 1,
+    borderColor: '#EA580C',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  addButtonText: {
+    color: '#EA580C',
+    fontWeight: '900',
+    fontSize: 13,
+  },
+  qtyBox: {
+    backgroundColor: '#EA580C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  qtyBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  qtyBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 16,
+  },
+  qtyVal: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 14,
+    paddingHorizontal: 6,
+  },
+  cartBar: {
+    backgroundColor: '#EA580C',
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cartCount: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cartTotal: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  checkoutBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  checkoutBtnText: {
+    color: '#EA580C',
+    fontWeight: '900',
+    fontSize: 14,
+  },
+});
