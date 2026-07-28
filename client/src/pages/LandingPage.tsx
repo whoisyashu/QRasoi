@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { MobileAppDownloadSection } from '../components/shared/MobileAppDownloadSection';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -316,6 +317,9 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Mobile App Download Section */}
+      <MobileAppDownloadSection />
+
       {/* FAQ Section */}
       <section id="faq" className="py-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
@@ -423,6 +427,11 @@ export const LandingPage: React.FC = () => {
               <li>
                 <Link to="/register" className="hover:text-orange-400 transition-colors">
                   Merchant Registration
+                </Link>
+              </li>
+              <li>
+                <Link to="/download-app" className="text-orange-400 font-bold hover:underline transition-colors flex items-center gap-1">
+                  📱 Download Mobile App (Android & iOS)
                 </Link>
               </li>
             </ul>

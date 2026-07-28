@@ -28,6 +28,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const RefundPolicyPage = lazy(() => import('./pages/RefundPolicyPage').then(m => ({ default: m.RefundPolicyPage })));
 const ContactPage = lazy(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
+const DownloadAppPage = lazy(() => import('./pages/DownloadAppPage').then(m => ({ default: m.DownloadAppPage })));
 
 // Chef Auth & Dashboard Pages
 const ChefLoginPage = lazy(() => import('./pages/ChefLoginPage').then(m => ({ default: m.ChefLoginPage })));
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/refund-policy" element={<RefundPolicyPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/download-app" element={<DownloadAppPage />} />
 
             <Route path="/r/:restaurantSlug" element={<PublicMenuPage />} />
             <Route path="/cart" element={<CartPage />} />
