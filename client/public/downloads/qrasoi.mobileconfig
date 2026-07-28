@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>IsRemovable</key>
+			<true/>
+			<key>Label</key>
+			<string>QRasoi</string>
+			<key>PayloadDescription</key>
+			<string>Installs QRasoi Digital Menus & POS Web App on your iOS home screen.</string>
+			<key>PayloadDisplayName</key>
+			<string>QRasoi</string>
+			<key>PayloadIdentifier</key>
+			<string>app.qrasoi.ios.webclip</string>
+			<key>PayloadType</key>
+			<string>com.apple.webClip.managed</string>
+			<key>PayloadUUID</key>
+			<string>728c41cb-a948-4891-b53d-89a3d1caaca4</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>URL</key>
+			<string>https://qrasoi.netlify.app</string>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>QRasoi Digital Menus</string>
+	<key>PayloadIdentifier</key>
+	<string>app.qrasoi.ios.profile</string>
+	<key>PayloadOrganization</key>
+	<string>QRasoi SaaS</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>828c41cb-a948-4891-b53d-89a3d1caaca5</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

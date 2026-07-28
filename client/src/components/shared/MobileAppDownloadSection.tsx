@@ -15,10 +15,8 @@ export const MobileAppDownloadSection: React.FC = () => {
   }, []);
 
   const handleAndroidDownload = () => {
-    // Direct link to download generated APK or latest GitHub release APK
-    const apkUrl = 'https://github.com/whoisyashu/QRasoi/releases/latest/download/QRasoi.apk';
     const link = document.createElement('a');
-    link.href = apkUrl;
+    link.href = '/downloads/qrasoi.apk';
     link.download = 'QRasoi.apk';
     document.body.appendChild(link);
     link.click();
@@ -26,8 +24,12 @@ export const MobileAppDownloadSection: React.FC = () => {
   };
 
   const handleIosDownload = () => {
-    // TestFlight or Expo Client fallback for iOS
-    window.open('https://expo.dev/@whoisyashu/qrasoi-mobile', '_blank');
+    const link = document.createElement('a');
+    link.href = '/downloads/qrasoi.mobileconfig';
+    link.download = 'QRasoi.mobileconfig';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
