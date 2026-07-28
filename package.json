@@ -5,8 +5,7 @@
   "description": "QRasoi SaaS Monorepo Orchestrator (Client, Server & Mobile)",
   "workspaces": [
     "client",
-    "server",
-    "mobile"
+    "server"
   ],
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names \"CLIENT,SERVER\" -c \"bgOrange.bold,bgBlue.bold\" \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
