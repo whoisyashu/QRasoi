@@ -13,11 +13,11 @@ export default function GatewayScreen() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      if (user.role === 'owner') {
+      if (user.role === 'owner' || user.role === 'OWNER') {
         router.replace('/(owner)');
-      } else if (user.role === 'chef') {
+      } else if (user.role === 'chef' || user.role === 'CHEF') {
         router.replace('/(chef)');
-      } else if (user.role === 'admin') {
+      } else if (user.role === 'admin' || user.role === 'SUPER_ADMIN') {
         router.replace('/(admin)');
       }
     }
@@ -57,9 +57,9 @@ export default function GatewayScreen() {
 
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => router.push('/(customer)/menu/sample-cafe')}
+            onPress={() => router.push('/scan-qr')}
           >
-            <Text style={styles.secondaryButtonText}>📱 View Demo Digital Menu</Text>
+            <Text style={styles.secondaryButtonText}>📷 Scan a Menu QR</Text>
           </TouchableOpacity>
         </View>
       </View>
